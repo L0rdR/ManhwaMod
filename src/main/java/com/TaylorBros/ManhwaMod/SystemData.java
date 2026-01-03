@@ -33,6 +33,14 @@ public class SystemData {
 
     // --- MUTATORS ---
     public static void savePoints(Player player, int val) { player.getPersistentData().putInt(POINTS, val); sync(player); }
+    public static void saveCurrentMana(Player player, int val) {
+        player.getPersistentData().putInt(CURRENT_MANA, val);
+        sync(player);
+    }
+    public static void saveAwakening(Player player, boolean val) {
+        player.getPersistentData().putBoolean(AWAKENED, val);
+        sync(player);
+    }
 
     // FIXED: Added the missing unlockSkill method
     public static void unlockSkill(Player player, int id, String recipe, int cost) {
