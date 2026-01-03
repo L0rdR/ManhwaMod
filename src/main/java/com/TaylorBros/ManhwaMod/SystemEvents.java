@@ -1,13 +1,17 @@
 package com.TaylorBros.ManhwaMod;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
@@ -17,7 +21,6 @@ import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraft.world.phys.AABB;
 
 import java.util.UUID;
 
@@ -30,13 +33,16 @@ public class SystemEvents {
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            // Check if it's a new player by checking for points
             if (!player.getPersistentData().contains("manhwamod.points")) {
-                SystemData.savePoints(player, 5);
-                SystemData.saveStrength(player, 10);
-                SystemData.saveHealthStat(player, 10);
-                SystemData.saveMana(player, 10);
-                SystemData.saveSpeed(player, 10);
-                SystemData.saveDefense(player, 10);
+                // We use the raw NBT keys here to match how your SystemData reads them
+                player.getPersistentData().putInt("manhwamod.points", 5);
+                player.getPersistentData().putInt("manhwamod.strength", 10);
+                player.getPersistentData().putInt("manhwamod.health_stat", 10);
+                player.getPersistentData().putInt("manhwamod.mana", 10);
+                player.getPersistentData().putInt("manhwamod.speed", 10);
+                player.getPersistentData().putInt("manhwamod.defense", 10);
+
                 player.getPersistentData().putBoolean("manhwamod.awakened", false);
                 player.getPersistentData().putBoolean("manhwamod.is_system_player", false);
                 player.getPersistentData().putBoolean("manhwamod.failed_system_trial", false);
@@ -159,13 +165,74 @@ public class SystemEvents {
     public static void onPlayerClone(PlayerEvent.Clone event) {
         Player oldPlayer = event.getOriginal();
         Player newPlayer = event.getEntity();
-        // Fixed: simplified data merging
         newPlayer.getPersistentData().merge(oldPlayer.getPersistentData());
         SystemData.sync(newPlayer);
         updatePlayerStats(newPlayer);
     }
 
-    // --- SKILL LOGIC ---
+    // --- MANIFESTED SKILL ENGINE ---
+
+    public static void castManifestedSkill(ServerPlayer player, int slotId) {
+        int skillId = player.getPersistentData().getInt("manhwamod.slot_" + slotId);
+        if (skillId <= 0) return;
+
+        String recipe = player.getPersistentData().getString("manhwamod.skill_recipe_" + skillId);
+        int cost = player.getPersistentData().getInt("manhwamod.skill_cost_" + skillId);
+        int currentMana = player.getPersistentData().getInt("manhwamod.current_mana");
+
+        if (currentMana >= cost && !recipe.isEmpty()) {
+            player.getPersistentData().putInt("manhwamod.current_mana", currentMana - cost);
+
+            String[] tags = recipe.split(":");
+            String name = tags[0];
+            String rarity = tags[1];
+            // In our system: Name is usually "ELEMENT SHAPE"
+            String shape = name.contains(" ") ? name.split(" ")[1].toUpperCase() : "BLAST";
+            String element = name.contains(" ") ? name.split(" ")[0].toUpperCase() : "MAGIC";
+
+            executeManifestedEffect(player, shape, element);
+            SystemData.sync(player);
+        } else {
+            player.sendSystemMessage(Component.literal("§cNot enough Mana!"));
+        }
+    }
+
+    private static void executeManifestedEffect(ServerPlayer player, String shape, String element) {
+        float damageBase = 5.0f + (SystemData.getMana(player) * 0.1f);
+
+        switch (shape) {
+            case "BLAST" -> {
+                EntityHitResult hit = getPlayerTarget(player, 12.0);
+                if (hit != null && hit.getEntity() instanceof LivingEntity target) {
+                    target.hurt(player.damageSources().magic(), damageBase);
+                    spawnElementParticles(player, target.position(), element);
+                }
+            }
+            case "SHIELD" -> {
+                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 200, 1));
+                spawnElementParticles(player, player.position(), element);
+            }
+            case "DOMAIN" -> {
+                AABB area = player.getBoundingBox().inflate(6.0);
+                player.level().getEntitiesOfClass(LivingEntity.class, area, e -> e != player).forEach(target -> {
+                    target.hurt(player.damageSources().magic(), damageBase / 2);
+                    spawnElementParticles(player, target.position(), element);
+                });
+            }
+        }
+    }
+
+    private static void spawnElementParticles(ServerPlayer player, Vec3 pos, String element) {
+        var type = switch(element) {
+            case "FIRE" -> ParticleTypes.FLAME;
+            case "ICE" -> ParticleTypes.SNOWFLAKE;
+            case "LIGHTNING" -> ParticleTypes.ELECTRIC_SPARK;
+            default -> ParticleTypes.WITCH;
+        };
+        player.serverLevel().sendParticles(type, pos.x, pos.y + 1, pos.z, 15, 0.3, 0.3, 0.3, 0.1);
+    }
+
+    // --- HARDCODED LEGACY SKILLS ---
 
     public static void executeDash(Player player) {
         if (!player.onGround() || !player.getPersistentData().getBoolean("manhwamod.awakened")) return;
@@ -182,22 +249,6 @@ public class SystemEvents {
         }
     }
 
-    public static void executeHeavyStrike(Player player) {
-        if (!player.getPersistentData().getBoolean("manhwamod.awakened")) return;
-        int strStat = SystemData.getStrength(player);
-        int currentMana = player.getPersistentData().getInt("manhwamod.current_mana");
-        int manaCost = (strStat >= 30) ? 15 : 8;
-        if (strStat >= 5 && currentMana >= manaCost) {
-            float damage = 2.0f + (strStat * 0.2f);
-            EntityHitResult hitResult = getPlayerTarget(player, 3.5);
-            if (hitResult != null && hitResult.getEntity() instanceof LivingEntity target) {
-                target.hurt(player.damageSources().playerAttack(player), damage);
-            }
-            player.getPersistentData().putInt("manhwamod.current_mana", currentMana - manaCost);
-            SystemData.sync(player);
-        }
-    }
-
     private static EntityHitResult getPlayerTarget(Player player, double range) {
         Vec3 eyePos = player.getEyePosition();
         Vec3 targetPos = eyePos.add(player.getViewVector(1.0F).scale(range));
@@ -209,7 +260,6 @@ public class SystemEvents {
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.side.isServer() && event.phase == TickEvent.Phase.END) {
             ServerPlayer player = (ServerPlayer) event.player;
-
             if (player.getPersistentData().getBoolean("manhwamod.is_system_player") && player.isSprinting()) {
                 DailyQuestData.addDistance(player, 0.5);
             }
@@ -217,11 +267,6 @@ public class SystemEvents {
             if (player.tickCount % 20 == 0) {
                 int manaStat = SystemData.getMana(player);
                 int maxMana = 20 + (manaStat * 5);
-
-                if (!player.getPersistentData().contains("manhwamod.current_mana")) {
-                    player.getPersistentData().putInt("manhwamod.current_mana", maxMana);
-                }
-
                 int currentMana = player.getPersistentData().getInt("manhwamod.current_mana");
                 int regenAmount = 5 + (maxMana / 20);
 

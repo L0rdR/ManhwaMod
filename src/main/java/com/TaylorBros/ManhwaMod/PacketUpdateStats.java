@@ -70,29 +70,33 @@ public class PacketUpdateStats {
     }
 
     public static void manifestNewSkill(ServerPlayer player, int skillNumber) {
-        // 1. Roll the dice for each category
+        // 1. Generate the tags (Ensures SkillTags class is used correctly)
         SkillTags.Shape shape = SkillTags.Shape.values()[(int)(Math.random() * SkillTags.Shape.values().length)];
         SkillTags.Element element = SkillTags.Element.values()[(int)(Math.random() * SkillTags.Element.values().length)];
         SkillTags.Modifier modifier = SkillTags.Modifier.values()[(int)(Math.random() * SkillTags.Modifier.values().length)];
 
-        // 2. Save the recipe as a string
-        String recipe = shape.name() + ":" + element.name() + ":" + modifier.name();
-        player.getPersistentData().putString("manhwamod.skill_recipe_" + skillNumber, recipe);
+        // 2. Format the Recipe String: "NAME:RARITY:DESC"
+        // This is the string the UI will split by ":" to get the name
+        String skillName = element.name() + " " + shape.name();
+        String rarity = modifier.name();
+        String description = "A manifested power of " + element.name();
+        String fullRecipe = skillName + ":" + rarity + ":" + description;
 
-        // 3. Roll a random cost between 15 and Max Mana
-        int maxMana = player.getPersistentData().getInt("manhwamod.max_mana");
-        if (maxMana < 20) maxMana = 20;
-        int randomCost = 15 + (int)(Math.random() * (maxMana - 15 + 1));
+        // 3. CRITICAL: Save to the NBT key the UI expects
+        // If this key is different by even one letter, the UI will show "Skill #1"
+        player.getPersistentData().putString("manhwamod.skill_recipe_" + skillNumber, fullRecipe);
 
-        // 4. Save the cost (Fixed variable name from newSkillId to skillNumber)
+        // Save the cost too for the casting logic
+        int randomCost = 15 + (int)(Math.random() * 20);
         player.getPersistentData().putInt("manhwamod.skill_cost_" + skillNumber, randomCost);
 
-        // 5. System Announcements
-        player.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fNew Skill Manifested!"));
-        player.sendSystemMessage(Component.literal("§6§l> §e" + element + " " + shape + " §7(" + modifier + ")"));
-        player.sendSystemMessage(Component.literal("§b[System] §fMana Cost: §3" + randomCost));
+        // 4. Update the Bank List
+        SystemData.unlockSkill(player, skillNumber, fullRecipe, randomCost);
 
-        player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
-                net.minecraft.sounds.SoundEvents.PLAYER_LEVELUP, net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 0.5f);
+        // 5. Feedback and Sync
+        player.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fNew Skill: §6" + skillName));
+
+        // MUST SYNC so the client UI sees the new recipe string immediately
+        SystemData.sync(player);
     }
 }
