@@ -82,8 +82,7 @@ public class StatusScreen extends Screen {
     }
 
     private void renderStatsTab(GuiGraphics g, int x, int y) {
-        g.drawString(this.font, "§b§lSYSTEM: STATUS", x + 12, y + 10, 0xFFFFFF);
-        int pts = SystemData.getPoints(this.minecraft.player);
+        g.drawString(this.font, "§b§lSYSTEM: " + this.minecraft.player.getName().getString().toUpperCase(), x + 12, y + 10, 0xFFFFFF);        int pts = SystemData.getPoints(this.minecraft.player);
         g.drawString(this.font, "§fAvailable Points: §e" + pts, x + 15, y + 65, 0xFFFFFF);
 
         drawStat(g, "Strength:", SystemData.getStrength(this.minecraft.player), "§c", x + 15, y + 80);

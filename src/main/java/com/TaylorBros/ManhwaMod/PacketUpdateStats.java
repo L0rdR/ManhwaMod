@@ -32,23 +32,26 @@ public class PacketUpdateStats {
 
             int currentPoints = SystemData.getPoints(player);
             if (currentPoints >= amount) {
-                // Update the specific stat
+                // 1. UPDATE STAT: Map 'HP' to 'healthstat' to match SystemData naming
                 String nbtKey = "manhwamod." + statType.toLowerCase();
+                if (statType.equals("HP")) nbtKey = "manhwamod.healthstat";
+
                 int currentVal = player.getPersistentData().getInt(nbtKey);
                 player.getPersistentData().putInt(nbtKey, currentVal + amount);
 
-                // Deduct points and sync
+                // 2. DEDUCT POINTS
                 SystemData.savePoints(player, currentPoints - amount);
 
-                // Check for random skill unlock (Business logic)
+                // 3. SKILL UNLOCK LOGIC
                 if (player.getRandom().nextFloat() < 0.1f) {
                     int skillNumber = player.getRandom().nextInt(1000);
                     String fullRecipe = "Random Skill:" + skillNumber + ":Generated Power";
                     int randomCost = 10 + player.getRandom().nextInt(40);
-
-                    // FIXED: Now calls the method correctly
                     SystemData.unlockSkill(player, skillNumber, fullRecipe, randomCost);
                 }
+
+                // 4. CRITICAL FIX: Sync the data to the client!
+                SystemData.sync(player);
             }
         });
         return true;
