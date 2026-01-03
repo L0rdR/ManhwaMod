@@ -32,17 +32,22 @@ public class PacketUpdateStats {
 
             int currentPoints = SystemData.getPoints(player);
             if (currentPoints >= amount) {
-                // 1. UPDATE STAT: Map 'HP' to 'healthstat' to match SystemData naming
+                // 1. Map the stat type to the correct NBT key
                 String nbtKey = "manhwamod." + statType.toLowerCase();
-                if (statType.equals("HP")) nbtKey = "manhwamod.healthstat";
 
+                // SPECIAL CASE: Ensure HP maps to the correct key used in SystemData
+                if (statType.equalsIgnoreCase("HP")) {
+                    nbtKey = "manhwamod.healthstat";
+                }
+
+                // 2. Update the specific stat in NBT
                 int currentVal = player.getPersistentData().getInt(nbtKey);
                 player.getPersistentData().putInt(nbtKey, currentVal + amount);
 
-                // 2. DEDUCT POINTS
+                // 3. Deduct points
                 SystemData.savePoints(player, currentPoints - amount);
 
-                // 3. SKILL UNLOCK LOGIC
+                // 4. Random skill unlock logic
                 if (player.getRandom().nextFloat() < 0.1f) {
                     int skillNumber = player.getRandom().nextInt(1000);
                     String fullRecipe = "Random Skill:" + skillNumber + ":Generated Power";
@@ -50,7 +55,8 @@ public class PacketUpdateStats {
                     SystemData.unlockSkill(player, skillNumber, fullRecipe, randomCost);
                 }
 
-                // 4. CRITICAL FIX: Sync the data to the client!
+                // 5. THE MISSING LINK: Sync the data to the client
+                // This tells the Screen to refresh the numbers you see!
                 SystemData.sync(player);
             }
         });

@@ -73,7 +73,7 @@ public class AwakenedStatusScreen extends Screen {
     }
 
     private void renderStatsTab(GuiGraphics g, int x, int y) {
-        g.drawString(this.font, "§b§lAWAKENED STATUS", x + 12, y + 10, 0xFFFFFF);
+        g.drawString(this.font, "§b§lAWAKENED" + this.minecraft.player.getName().getString().toUpperCase(), x + 12, y + 10, 0xFFFFFF);
 
         int pts = SystemData.getPoints(this.minecraft.player);
         g.drawString(this.font, "§fAvailable Points: §e" + pts, x + 15, y + 65, 0xFFFFFF);
