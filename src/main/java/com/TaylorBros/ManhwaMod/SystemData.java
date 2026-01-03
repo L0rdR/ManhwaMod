@@ -19,14 +19,13 @@ public class SystemData {
     public static final String RECIPE_PREFIX = "manhwamod.skill_recipe_";
     public static final String COST_PREFIX = "manhwamod.skill_cost_";
 
-    // --- ACCESSORS (Used by Screens & Overlays) ---
+    // --- ACCESSORS ---
     public static boolean isAwakened(Player player) { return player.getPersistentData().getBoolean(AWAKENED); }
     public static boolean isSystemPlayer(Player player) { return player.getPersistentData().getBoolean(IS_SYSTEM); }
     public static int getPoints(Player player) { return player.getPersistentData().getInt(POINTS); }
     public static int getMana(Player player) { return player.getPersistentData().getInt(MANA); }
     public static int getCurrentMana(Player player) { return player.getPersistentData().getInt(CURRENT_MANA); }
 
-    // --- STAT GETTERS ---
     public static int getStrength(Player player) { return player.getPersistentData().getInt("manhwamod.strength"); }
     public static int getHealthStat(Player player) { return player.getPersistentData().getInt("manhwamod.health"); }
     public static int getDefense(Player player) { return player.getPersistentData().getInt("manhwamod.defense"); }
@@ -34,9 +33,19 @@ public class SystemData {
 
     // --- MUTATORS ---
     public static void savePoints(Player player, int val) { player.getPersistentData().putInt(POINTS, val); sync(player); }
-    public static void saveCurrentMana(Player player, int val) { player.getPersistentData().putInt(CURRENT_MANA, val); sync(player); }
 
-    // --- SKILL LOGIC (FIX FOR PACKETS) ---
+    // FIXED: Added the missing unlockSkill method
+    public static void unlockSkill(Player player, int id, String recipe, int cost) {
+        List<Integer> unlocked = getUnlockedSkills(player);
+        if (!unlocked.contains(id)) {
+            String currentBank = player.getPersistentData().getString(BANK);
+            player.getPersistentData().putString(BANK, currentBank + "[" + id + "]");
+        }
+        player.getPersistentData().putString(RECIPE_PREFIX + id, recipe);
+        player.getPersistentData().putInt(COST_PREFIX + id, cost);
+        sync(player);
+    }
+
     public static List<Integer> getUnlockedSkills(Player player) {
         List<Integer> list = new ArrayList<>();
         String bank = player.getPersistentData().getString(BANK);

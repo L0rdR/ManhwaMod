@@ -27,15 +27,16 @@ public class PacketEquipSkill {
     public boolean handle(Supplier<NetworkEvent.Context> supplier) {
         NetworkEvent.Context context = supplier.get();
         context.enqueueWork(() -> {
-            // Inside PacketEquipSkill.java handle method:
             ServerPlayer player = context.getSender();
             if (player != null) {
-                // CASCADE: This now correctly finds the method in SystemData
+                // FIXED: Changed 'slot' to 'slotId' to match the constructor/field
+                // FIXED: Using SystemData.getUnlockedSkills to verify ownership
                 if (SystemData.getUnlockedSkills(player).contains(skillId)) {
-                    player.getPersistentData().putInt(SystemData.SLOT_PREFIX + slot, skillId);
+                    player.getPersistentData().putInt(SystemData.SLOT_PREFIX + slotId, skillId);
                     SystemData.sync(player);
                 }
             }
+        }); // Added missing closing brace/parenthesis for enqueueWork
         return true;
     }
 }
