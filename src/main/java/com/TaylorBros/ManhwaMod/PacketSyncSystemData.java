@@ -18,7 +18,7 @@ public class PacketSyncSystemData {
         context.enqueueWork(() -> {
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                // RULE: Merge all server-side NBT to the client
+                // RULE: Merge all server data into the client player
                 mc.player.getPersistentData().merge(this.data);
                 mc.player.refreshDisplayName();
             }
