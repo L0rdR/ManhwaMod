@@ -27,18 +27,15 @@ public class PacketEquipSkill {
     public boolean handle(Supplier<NetworkEvent.Context> supplier) {
         NetworkEvent.Context context = supplier.get();
         context.enqueueWork(() -> {
+            // Inside PacketEquipSkill.java handle method:
             ServerPlayer player = context.getSender();
-            if (player == null) return;
-
-            // SECURITY CHECK: Does the player actually own this skill in their bank?
-            if (SystemData.getUnlockedSkills(player).contains(skillId)) {
-                // Save to the specific slot (1-5)
-                player.getPersistentData().putInt("manhwamod.slot_" + slotId, skillId);
-
-                // Sync back to client to update the UI visuals
-                SystemData.sync(player);
+            if (player != null) {
+                // CASCADE: This now correctly finds the method in SystemData
+                if (SystemData.getUnlockedSkills(player).contains(skillId)) {
+                    player.getPersistentData().putInt(SystemData.SLOT_PREFIX + slot, skillId);
+                    SystemData.sync(player);
+                }
             }
-        });
         return true;
     }
 }

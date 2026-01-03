@@ -1,6 +1,7 @@
 package com.TaylorBros.ManhwaMod;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
@@ -15,17 +16,22 @@ public class ClientEvents {
             Player player = Minecraft.getInstance().player;
             if (player == null) return;
 
-            // Cascade: Unified Screen Logic
+            // STATUS SCREEN - Cascaded to use SystemData.isSystemPlayer
             while (KeyInputHandler.STATUS_KEY.consumeClick()) {
                 if (SystemData.isAwakened(player)) {
-                    Minecraft.getInstance().setScreen(new AwakenedStatusScreen());
-                } else {
-                    Minecraft.getInstance().setScreen(new StatusScreen());
+                    if (SystemData.isSystemPlayer(player)) {
+                        Minecraft.getInstance().setScreen(new StatusScreen());
+                    } else {
+                        player.sendSystemMessage(Component.literal("§c[SYSTEM] §7Authentication Denied."));
+                    }
                 }
             }
 
+            // QUEST JOURNAL - Synchronized logic
             while (KeyInputHandler.QUEST_KEY.consumeClick()) {
-                Minecraft.getInstance().setScreen(new SystemQuestScreen());
+                if (SystemData.isSystemPlayer(player)) {
+                    Minecraft.getInstance().setScreen(new SystemQuestScreen());
+                }
             }
 
             while (KeyInputHandler.DASH_KEY.consumeClick()) {
