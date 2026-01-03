@@ -11,6 +11,7 @@ public class SystemData {
     public static final String AWAKENED = "manhwamod.awakened";
     public static final String MANA = "manhwamod.mana";
     public static final String CURRENT_MANA = "manhwamod.current_mana";
+    public static final String POINTS = "manhwamod.points";
     public static final String BANK = "manhwamod.unlocked_skills";
     public static final String RECIPE_PREFIX = "manhwamod.skill_recipe_";
     public static final String COST_PREFIX = "manhwamod.skill_cost_";
@@ -19,6 +20,7 @@ public class SystemData {
     public static void saveMana(Player player, int val) {
         player.getPersistentData().putInt(MANA, val);
         if (val >= 50) checkAndUnlock(player, 1, "Mana Blast", "§bRARE");
+        if (val >= 100) checkAndUnlock(player, 2, "Mana Shield", "§6EPIC");
         sync(player);
     }
 
@@ -34,7 +36,7 @@ public class SystemData {
 
     public static void sync(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
-            // RULE: Send the whole NBT folder to ensure EVERYTHING stays in sync
+            // RULE: Send the whole NBT folder so EVERYTHING (names, slots) stays in sync
             Messages.sendToPlayer(new PacketSyncSystemData(player.getPersistentData()), serverPlayer);
         }
     }
@@ -44,7 +46,6 @@ public class SystemData {
         if (!unlocked.contains(id)) {
             unlocked.add(id);
             saveUnlockedSkills(player, unlocked);
-            // RULE: Save specifically to NBT so it persists through relogs
             player.getPersistentData().putString(RECIPE_PREFIX + id, recipe);
             player.getPersistentData().putInt(COST_PREFIX + id, cost);
             sync(player);
