@@ -27,6 +27,13 @@ public class StatusScreen extends Screen {
 
     @Override
     protected void init() {
+        // --- BUSINESS GATEKEEPER ---
+        // If the player awakens while this screen is open, swap to the Plate immediately
+        if (this.minecraft.player != null && SystemData.isAwakened(this.minecraft.player)) {
+            this.minecraft.setScreen(new AwakenedStatusScreen());
+            return;
+        }
+
         int x = (this.width - WINDOW_WIDTH) / 2;
         int y = (this.height - WINDOW_HEIGHT) / 2;
 
@@ -67,6 +74,12 @@ public class StatusScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // --- SECONDARY REDIRECT CHECK ---
+        if (SystemData.isAwakened(this.minecraft.player)) {
+            this.minecraft.setScreen(new AwakenedStatusScreen());
+            return;
+        }
+
         this.renderBackground(guiGraphics);
         int x = (this.width - WINDOW_WIDTH) / 2;
         int y = (this.height - WINDOW_HEIGHT) / 2;
@@ -99,7 +112,7 @@ public class StatusScreen extends Screen {
         // XP BAR
         g.drawString(this.font, "Level: §f" + level, x + 15, y + 30, 0xFFFFFF);
         g.fill(x + 15, y + 42, x + 175, y + 52, 0xFF222222);
-        float progress = Math.min(xp, xpNeeded) / (float)xpNeeded;
+        float progress = (float) Math.min(xp, xpNeeded) / xpNeeded;
         g.fill(x + 15, y + 42, x + 15 + (int)(progress * 160), y + 52, 0xFF00FF00);
         g.drawCenteredString(this.font, xp + " / " + xpNeeded + " XP", x + WINDOW_WIDTH / 2, y + 43, 0xFFFFFF);
 
@@ -115,17 +128,17 @@ public class StatusScreen extends Screen {
 
     private void renderSkillsTab(GuiGraphics g, int x, int y, int mouseX, int mouseY) {
         for (int i = 1; i <= 5; i++) {
-            String recipe = this.minecraft.player.getPersistentData().getString("manhwamod.skill_recipe_" + i);
-            int slotY = y + 40 + (i * 28);
+            // Mapping: Slot -> SkillID -> Recipe
+            int skillId = this.minecraft.player.getPersistentData().getInt("manhwamod.slot_" + i);
+            String recipe = this.minecraft.player.getPersistentData().getString("manhwamod.skill_recipe_" + skillId);
+            int cost = this.minecraft.player.getPersistentData().getInt("manhwamod.skill_cost_" + skillId);
 
-            // 1. Draw Slot Background
+            int slotY = y + 40 + (i * 28);
             g.fill(x + 10, slotY - 5, x + WINDOW_WIDTH - 10, slotY + 20, 0x33FFFFFF);
 
-            if (!recipe.isEmpty()) {
-                String[] parts = recipe.split(":"); // SHAPE:ELEMENT:MODIFIER
-                int cost = this.minecraft.player.getPersistentData().getInt("manhwamod.skill_cost_" + i);
+            if (skillId != 0 && !recipe.isEmpty()) {
+                String[] parts = recipe.split(":");
 
-                // 2. Determine Rarity Color based on Mana Cost
                 String color;
                 String rarityName;
                 if (cost >= 100) { color = "§6§l"; rarityName = "LEGENDARY"; }
@@ -134,11 +147,9 @@ public class StatusScreen extends Screen {
                 else if (cost >= 20) { color = "§a"; rarityName = "UNCOMMON"; }
                 else { color = "§f"; rarityName = "COMMON"; }
 
-                // 3. Draw Skill Name and Effect
                 g.drawString(this.font, "Slot " + i + ": " + color + parts[1] + " " + parts[0], x + 15, slotY, 0xFFFFFF);
                 g.drawString(this.font, "§8Effect: §7" + parts[2], x + 15, slotY + 10, 0xFFFFFF);
 
-                // 4. Hover Tooltip (Detailed Stats)
                 if (mouseX > x + 10 && mouseX < x + 180 && mouseY > slotY - 5 && mouseY < slotY + 20) {
                     int range = 10 + (cost / 10);
                     String tooltip = color + "§l" + rarityName + "\n" +
@@ -148,8 +159,7 @@ public class StatusScreen extends Screen {
                     g.renderTooltip(this.font, Component.literal(tooltip), mouseX, mouseY);
                 }
             } else {
-                // Locked Slot
-                g.drawString(this.font, "§8Slot " + i + ": [LOCKED]", x + 15, slotY + 4, 0xFFFFFF);
+                g.drawString(this.font, "§8Slot " + i + ": [EMPTY]", x + 15, slotY + 4, 0xFFFFFF);
             }
         }
     }

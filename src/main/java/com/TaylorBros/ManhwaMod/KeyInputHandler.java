@@ -44,21 +44,30 @@ public class KeyInputHandler {
         @SubscribeEvent
         public static void onKeyInput(InputEvent.Key event) {
             if (Minecraft.getInstance().screen != null) return;
+            var player = Minecraft.getInstance().player;
+            if (player == null) return;
 
-            // Handle Skills
-            if (SKILL_1.consumeClick()) Messages.sendToServer(new PacketCastSkill(1));
-            if (SKILL_2.consumeClick()) Messages.sendToServer(new PacketCastSkill(2));
-            if (SKILL_3.consumeClick()) Messages.sendToServer(new PacketCastSkill(3));
-            if (SKILL_4.consumeClick()) Messages.sendToServer(new PacketCastSkill(4));
-            if (SKILL_5.consumeClick()) Messages.sendToServer(new PacketCastSkill(5));
+            // 1. Check Awakening Status once
+            boolean isAwakened = SystemData.isAwakened(player);
 
-            // Handle Systems
-            if (DASH_KEY.consumeClick()) {
-                // You might need a packet or direct call for Dash here
-                SystemEvents.executeDash(Minecraft.getInstance().player);
-            }
             if (STATUS_KEY.consumeClick()) {
-                Minecraft.getInstance().setScreen(new StatusScreen());
+                if (isAwakened) {
+                    // If Awakened, show the Plate (AwakenedStatusScreen)
+                    Minecraft.getInstance().setScreen(new AwakenedStatusScreen());
+                } else {
+                    // If Civilian, show the Blue Status Window
+                    Minecraft.getInstance().setScreen(new StatusScreen());
+                }
+            }
+
+            // 2. Only allow skills/dash if awakened
+            if (isAwakened) {
+                if (SKILL_1.consumeClick()) Messages.sendToServer(new PacketCastSkill(1));
+                if (SKILL_2.consumeClick()) Messages.sendToServer(new PacketCastSkill(2));
+                if (SKILL_3.consumeClick()) Messages.sendToServer(new PacketCastSkill(3));
+                if (SKILL_4.consumeClick()) Messages.sendToServer(new PacketCastSkill(4));
+                if (SKILL_5.consumeClick()) Messages.sendToServer(new PacketCastSkill(5));
+                if (DASH_KEY.consumeClick()) SystemEvents.executeDash(player);
             }
         }
     }

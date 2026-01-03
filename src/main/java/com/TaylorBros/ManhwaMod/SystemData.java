@@ -2,6 +2,9 @@ package com.TaylorBros.ManhwaMod;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.nbt.CompoundTag;
+import java.util.List;
+import java.util.ArrayList;
 
 public class SystemData {
     private static final String AWAKENED_KEY = "manhwamod.awakened";
@@ -12,48 +15,94 @@ public class SystemData {
     private static final String SPD_KEY = "manhwamod.speed";
     private static final String MANA_KEY = "manhwamod.mana";
     private static final String CURRENT_MANA_KEY = "manhwamod.current_mana";
+    private static final String BANK_KEY = "manhwamod.unlocked_skills";
 
-    // --- RANK LOGIC (Scale 1-1000) ---
-    public static String getRank(Player player) {
-        int level = player.getPersistentData().getInt("manhwamod.level");
-        if (level >= 900) return "§c§lNATIONAL";
-        if (level >= 750) return "§6§lS";
-        if (level >= 500) return "§e§lA";
-        if (level >= 300) return "§d§lB";
-        if (level >= 150) return "§b§lC";
-        if (level >= 50)  return "§a§lD";
-        return "§7§lE";
+    public static boolean isAwakened(Player player) {
+        return player.getPersistentData().getBoolean("manhwamod.awakened");
     }
 
-    public static boolean isAwakened(Player player) { return player.getPersistentData().getBoolean(AWAKENED_KEY); }
-    public static void saveAwakening(Player player, boolean value) { player.getPersistentData().putBoolean(AWAKENED_KEY, value); sync(player); }
+    public static void saveAwakening(Player player, boolean value) {
+        player.getPersistentData().putBoolean("manhwamod.awakened", value);
+        sync(player);
+    }
+    
+    // --- MILESTONE LOGIC ---
+    public static void saveMana(Player player, int val) {
+        player.getPersistentData().putInt(MANA_KEY, val);
 
-    // --- STAT HELPERS WITH DEFAULTS (Prevents Freezing) ---
-    public static int getStrength(Player player) { return player.getPersistentData().contains(STR_KEY) ? player.getPersistentData().getInt(STR_KEY) : 10; }
-    public static void saveStrength(Player player, int amount) { player.getPersistentData().putInt(STR_KEY, amount); sync(player); }
+        // BUSINESS LOGIC: Automatic unlocks every 50 points
+        if (val >= 50) checkAndUnlock(player, 1, "Mana Blast", "§bRARE", 0);
+        if (val >= 100) checkAndUnlock(player, 2, "Mana Shield", "§6EPIC", 0);
+        if (val >= 150) checkAndUnlock(player, 3, "Mana Flight", "§cMYTHIC", 0);
+        // Add more as needed...
 
-    public static int getPoints(Player player) { return player.getPersistentData().contains(POINTS_KEY) ? player.getPersistentData().getInt(POINTS_KEY) : 5; }
+        sync(player);
+    }
+
+    private static void checkAndUnlock(Player player, int id, String name, String rarity, int cost) {
+        String bank = player.getPersistentData().getString(BANK_KEY);
+        if (!bank.contains("[" + id + "]")) {
+            unlockSkill(player, id, name + ":" + rarity + ":Unlocked via Mana Milestone", cost);
+        }
+    }
+
+    // --- REST OF HELPERS ---
+    public static int getStrength(Player player) {
+        int val = player.getPersistentData().getInt(STR_KEY);
+        return val <= 0 ? 10 : val;
+    }
+
+    public static void saveStrength(Player player, int amount) {
+        player.getPersistentData().putInt(STR_KEY, amount);
+        sync(player);
+    }
+
+    public static int getPoints(Player player) { return player.getPersistentData().getInt(POINTS_KEY); }
     public static void savePoints(Player player, int amount) { player.getPersistentData().putInt(POINTS_KEY, amount); sync(player); }
 
-    public static int getHealthStat(Player player) { return player.getPersistentData().contains(HP_KEY) ? player.getPersistentData().getInt(HP_KEY) : 10; }
-    public static void saveHealthStat(Player player, int val) { player.getPersistentData().putInt(HP_KEY, val); sync(player); }
+    public static int getHealthStat(Player player) {
+        int val = player.getPersistentData().getInt(HP_KEY);
+        return val <= 0 ? 10 : val;
+    }
 
-    public static int getDefense(Player player) { return player.getPersistentData().contains(DEF_KEY) ? player.getPersistentData().getInt(DEF_KEY) : 10; }
-    public static void saveDefense(Player player, int val) { player.getPersistentData().putInt(DEF_KEY, val); sync(player); }
+    public static void saveHealthStat(Player player, int val) {
+        player.getPersistentData().putInt(HP_KEY, val);
+        sync(player);
+    }
 
-    public static int getSpeed(Player player) { return player.getPersistentData().contains(SPD_KEY) ? player.getPersistentData().getInt(SPD_KEY) : 10; }
-    public static void saveSpeed(Player player, int val) { player.getPersistentData().putInt(SPD_KEY, val); sync(player); }
+    public static int getDefense(Player player) {
+        int val = player.getPersistentData().getInt(DEF_KEY);
+        return val <= 0 ? 10 : val;
+    }
 
-    public static int getMana(Player player) { return player.getPersistentData().contains(MANA_KEY) ? player.getPersistentData().getInt(MANA_KEY) : 10; }
-    public static void saveMana(Player player, int val) { player.getPersistentData().putInt(MANA_KEY, val); sync(player); }
+    public static void saveDefense(Player player, int val) {
+        player.getPersistentData().putInt(DEF_KEY, val);
+        sync(player);
+    }
+
+    public static int getSpeed(Player player) {
+        int val = player.getPersistentData().getInt(SPD_KEY);
+        return val <= 0 ? 10 : val;
+    }
+
+    public static void saveSpeed(Player player, int val) {
+        player.getPersistentData().putInt(SPD_KEY, val);
+        sync(player);
+    }
+
+    public static int getMana(Player player) {
+        int val = player.getPersistentData().getInt(MANA_KEY);
+        return val <= 0 ? 10 : val;
+    }
 
     public static int getCurrentMana(Player player) { return player.getPersistentData().getInt(CURRENT_MANA_KEY); }
     public static void saveCurrentMana(Player player, int val) { player.getPersistentData().putInt(CURRENT_MANA_KEY, val); sync(player); }
 
     public static void sync(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
+            CompoundTag data = player.getPersistentData();
             Messages.sendToPlayer(new PacketSyncSystemData(
-                    isAwakened(player),
+                    player.getPersistentData().getBoolean(AWAKENED_KEY),
                     getPoints(player),
                     getStrength(player),
                     getHealthStat(player),
@@ -61,10 +110,36 @@ public class SystemData {
                     getSpeed(player),
                     getMana(player),
                     getCurrentMana(player),
-                    player.getPersistentData().getBoolean("manhwamod.is_system_player"),
-                    player.getPersistentData().getInt("manhwamod.level"), // ADDED
-                    player.getPersistentData().getInt("manhwamod.xp")    // ADDED
+                    data.getBoolean("manhwamod.is_system_player"),
+                    data.getInt("manhwamod.level"),
+                    data.getInt("manhwamod.xp"),
+                    data.getString(BANK_KEY)
             ), serverPlayer);
         }
+    }
+
+    public static void unlockSkill(Player player, int skillId, String recipeData, int cost) {
+        CompoundTag data = player.getPersistentData();
+        data.putString("manhwamod.skill_recipe_" + skillId, recipeData);
+        data.putInt("manhwamod.skill_cost_" + skillId, cost);
+        String bank = data.getString(BANK_KEY);
+        if (!bank.contains("[" + skillId + "]")) {
+            bank += "[" + skillId + "]";
+            data.putString(BANK_KEY, bank);
+        }
+        sync(player);
+    }
+
+    public static List<Integer> getUnlockedSkills(Player player) {
+        List<Integer> list = new ArrayList<>();
+        String bank = player.getPersistentData().getString(BANK_KEY);
+        if (bank.isEmpty()) return list;
+        String[] parts = bank.replace("[", "").split("]");
+        for (String s : parts) {
+            if (!s.isEmpty()) {
+                try { list.add(Integer.parseInt(s)); } catch (NumberFormatException ignored) {}
+            }
+        }
+        return list;
     }
 }
