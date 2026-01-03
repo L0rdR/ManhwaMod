@@ -32,22 +32,25 @@ public class PacketUpdateStats {
 
             int currentPoints = SystemData.getPoints(player);
             if (currentPoints >= amount) {
-                // 1. Map the stat type to the correct NBT key
-                String nbtKey = "manhwamod." + statType.toLowerCase();
-
-                // SPECIAL CASE: Ensure HP maps to the correct key used in SystemData
-                if (statType.equalsIgnoreCase("HP")) {
-                    nbtKey = "manhwamod.healthstat";
+                // 1. Manually map the statType to the exact keys in SystemData.java
+                String nbtKey;
+                switch (statType) {
+                    case "STR" -> nbtKey = "manhwamod.strength";
+                    case "HP"  -> nbtKey = "manhwamod.health";
+                    case "DEF" -> nbtKey = "manhwamod.defense";
+                    case "SPD" -> nbtKey = "manhwamod.speed";
+                    case "MANA"-> nbtKey = "manhwamod.mana";
+                    default    -> nbtKey = "manhwamod." + statType.toLowerCase();
                 }
 
-                // 2. Update the specific stat in NBT
+                // 2. Update the stat using the correct key
                 int currentVal = player.getPersistentData().getInt(nbtKey);
                 player.getPersistentData().putInt(nbtKey, currentVal + amount);
 
                 // 3. Deduct points
                 SystemData.savePoints(player, currentPoints - amount);
 
-                // 4. Random skill unlock logic
+                // 4. Random skill logic (unchanged)
                 if (player.getRandom().nextFloat() < 0.1f) {
                     int skillNumber = player.getRandom().nextInt(1000);
                     String fullRecipe = "Random Skill:" + skillNumber + ":Generated Power";
@@ -55,8 +58,7 @@ public class PacketUpdateStats {
                     SystemData.unlockSkill(player, skillNumber, fullRecipe, randomCost);
                 }
 
-                // 5. THE MISSING LINK: Sync the data to the client
-                // This tells the Screen to refresh the numbers you see!
+                // 5. Sync the data so the Screen updates
                 SystemData.sync(player);
             }
         });
