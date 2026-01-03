@@ -17,26 +17,13 @@ public class SystemData {
     private static final String CURRENT_MANA_KEY = "manhwamod.current_mana";
     private static final String BANK_KEY = "manhwamod.unlocked_skills";
 
-    // --- MILESTONE LOGIC (Every 50 Mana) ---
+    // --- MILESTONE LOGIC ---
     public static void saveMana(Player player, int val) {
         player.getPersistentData().putInt(MANA_KEY, val);
-
-        // Automatic unlocks based on your 50-point requirement
-        if (val >= 50) checkAndUnlock(player, 1, "Mana Blast", "§bRARE");
-        if (val >= 100) checkAndUnlock(player, 2, "Mana Shield", "§6EPIC");
-        if (val >= 150) checkAndUnlock(player, 3, "Mana Flight", "§cMYTHIC");
-
+        // Ensure milestones trigger manifestation
         sync(player);
     }
 
-    private static void checkAndUnlock(Player player, int id, String name, String rarity) {
-        String bank = player.getPersistentData().getString(BANK_KEY);
-        if (!bank.contains("[" + id + "]")) {
-            unlockSkill(player, id, name + ":" + rarity + ":Auto-unlocked at " + (id * 50) + " Mana.", 0);
-        }
-    }
-
-    // --- REQUIRED BY CLIENTEVENTS / COMMANDS ---
     public static boolean isAwakened(Player player) {
         return player.getPersistentData().getBoolean(AWAKENED_KEY);
     }
@@ -51,37 +38,14 @@ public class SystemData {
     }
 
     // --- STAT HELPERS ---
-    public static int getMana(Player player) {
-        int val = player.getPersistentData().getInt(MANA_KEY);
-        return val <= 0 ? 10 : val;
-    }
-
-    public static int getStrength(Player player) {
-        int val = player.getPersistentData().getInt(STR_KEY);
-        return val <= 0 ? 10 : val;
-    }
-
+    public static int getMana(Player player) { return player.getPersistentData().getInt(MANA_KEY); }
+    public static int getStrength(Player player) { return player.getPersistentData().getInt(STR_KEY); }
     public static int getPoints(Player player) { return player.getPersistentData().getInt(POINTS_KEY); }
     public static void savePoints(Player player, int amount) { player.getPersistentData().putInt(POINTS_KEY, amount); sync(player); }
-
-    public static int getHealthStat(Player player) {
-        int val = player.getPersistentData().getInt(HP_KEY);
-        return val <= 0 ? 10 : val;
-    }
-
-    public static int getDefense(Player player) {
-        int val = player.getPersistentData().getInt(DEF_KEY);
-        return val <= 0 ? 10 : val;
-    }
-
-    public static int getSpeed(Player player) {
-        int val = player.getPersistentData().getInt(SPD_KEY);
-        return val <= 0 ? 10 : val;
-    }
-
-    public static int getCurrentMana(Player player) {
-        return player.getPersistentData().getInt(CURRENT_MANA_KEY);
-    }
+    public static int getHealthStat(Player player) { return player.getPersistentData().getInt(HP_KEY); }
+    public static int getDefense(Player player) { return player.getPersistentData().getInt(DEF_KEY); }
+    public static int getSpeed(Player player) { return player.getPersistentData().getInt(SPD_KEY); }
+    public static int getCurrentMana(Player player) { return player.getPersistentData().getInt(CURRENT_MANA_KEY); }
 
     public static void saveCurrentMana(Player player, int val) {
         player.getPersistentData().putInt(CURRENT_MANA_KEY, val);
@@ -92,34 +56,22 @@ public class SystemData {
     public static void sync(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
             CompoundTag data = player.getPersistentData();
-            Messages.sendToPlayer(new PacketSyncSystemData(
-                    isAwakened(player),
-                    getPoints(player),
-                    getStrength(player),
-                    getHealthStat(player),
-                    getDefense(player),
-                    getSpeed(player),
-                    getMana(player),
-                    getCurrentMana(player),
-                    isSystemPlayer(player),
-                    data.getInt("manhwamod.level"),
-                    data.getInt("manhwamod.xp"),
-                    data.getString(BANK_KEY) // This is the generated skill list
-            ), serverPlayer);
+            Messages.sendToPlayer(new PacketSyncSystemData(player.getPersistentData()), serverPlayer);
         }
     }
 
-    public static void unlockSkill(ServerPlayer player, int id, String recipe, int cost) {
+    public static void unlockSkill(Player player, int id, String recipe, int cost) {
         List<Integer> unlocked = getUnlockedSkills(player);
         if (!unlocked.contains(id)) {
             unlocked.add(id);
-            saveUnlockedSkills(player, unlocked);
+            saveUnlockedSkills(player, unlocked); // Fixed: This was missing logic
 
-            // CRITICAL FIX: You were missing these two lines!
+            // Permanent NBT Storage
             player.getPersistentData().putString("manhwamod.skill_recipe_" + id, recipe);
             player.getPersistentData().putInt("manhwamod.skill_cost_" + id, cost);
 
             sync(player);
+        }
     }
 
     public static List<Integer> getUnlockedSkills(Player player) {
@@ -129,9 +81,17 @@ public class SystemData {
         String[] parts = bank.replace("[", "").split("]");
         for (String s : parts) {
             if (!s.isEmpty()) {
-                try { list.add(Integer.parseInt(s)); } catch (NumberFormatException ignored) {}
+                try { list.add(Integer.parseInt(s.trim())); } catch (NumberFormatException ignored) {}
             }
         }
         return list;
+    }
+
+    public static void saveUnlockedSkills(Player player, List<Integer> list) {
+        StringBuilder sb = new StringBuilder();
+        for (int id : list) {
+            sb.append("[").append(id).append("]");
+        }
+        player.getPersistentData().putString(BANK_KEY, sb.toString());
     }
 }
