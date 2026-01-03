@@ -28,9 +28,13 @@ public class SystemData {
     }
 
     // --- CORE LOGIC ---
+    public static boolean isAwakened(Player player) {
+        return player.getPersistentData().getBoolean(AWAKENED);
+    }
+
     public static void saveMana(Player player, int val) {
         player.getPersistentData().putInt(MANA, val);
-        // Automatic skill unlock logic
+        // Rule 2: Logic - Auto-unlock first skill at 50 mana
         if (val >= 50) checkAndUnlock(player, 1, "Mana Blast", "§bRARE");
         sync(player);
     }
@@ -38,7 +42,7 @@ public class SystemData {
     private static void checkAndUnlock(Player player, int id, String name, String rarity) {
         String bank = player.getPersistentData().getString(BANK);
         if (!bank.contains("[" + id + "]")) {
-            unlockSkill((ServerPlayer)player, id, name + ":" + rarity + ":Auto-unlocked", 0);
+            unlockSkill((ServerPlayer)player, id, name + ":" + rarity + ":System", 0);
         }
     }
 
@@ -47,7 +51,7 @@ public class SystemData {
 
     public static void sync(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
-            // RULE: Send full NBT sync to prevent "No Data" bugs
+            // RULE: Full NBT Sync to ensure UI and Commands see the same data
             Messages.sendToPlayer(new PacketSyncSystemData(player.getPersistentData()), serverPlayer);
         }
     }
