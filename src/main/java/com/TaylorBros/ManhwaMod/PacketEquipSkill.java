@@ -30,12 +30,12 @@ public class PacketEquipSkill {
             ServerPlayer player = context.getSender();
             if (player != null) {
                 if (SystemData.getUnlockedSkills(player).contains(skillId)) {
-                    // FIXED: Changed 'slot' to 'slotId'
+                    // Changed 'slot' to 'slotId' to match the field name
                     player.getPersistentData().putInt(SystemData.SLOT_PREFIX + slotId, skillId);
                     SystemData.sync(player);
                 }
             }
-        }); // FIXED: Added missing closing brace/parenthesis
+        }); // Added closing brace and parenthesis
         return true;
     }
 }

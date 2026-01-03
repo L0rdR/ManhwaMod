@@ -47,16 +47,20 @@ public class KeyInputHandler {
             var player = Minecraft.getInstance().player;
             if (player == null) return;
 
-            // 1. Check Awakening Status once
+            // 1. Establish the "Tiered Access" checks from SystemData
             boolean isAwakened = SystemData.isAwakened(player);
+            boolean isPlayer = SystemData.isSystemPlayer(player);
 
             if (STATUS_KEY.consumeClick()) {
+                // NEW LOGIC: If they aren't even awakened, the key does absolutely nothing
                 if (isAwakened) {
-                    // If Awakened, show the Plate (AwakenedStatusScreen)
-                    Minecraft.getInstance().setScreen(new AwakenedStatusScreen());
-                } else {
-                    // If Civilian, show the Blue Status Window
-                    Minecraft.getInstance().setScreen(new StatusScreen());
+                    if (isPlayer) {
+                        // If they are a 'Player', show the premium screen (with Daily Quests)
+                        Minecraft.getInstance().setScreen(new StatusScreen());
+                    } else {
+                        // If they are just 'Awakened', show the basic stat plate
+                        Minecraft.getInstance().setScreen(new AwakenedStatusScreen());
+                    }
                 }
             }
 
@@ -68,6 +72,11 @@ public class KeyInputHandler {
                 if (SKILL_4.consumeClick()) Messages.sendToServer(new PacketCastSkill(4));
                 if (SKILL_5.consumeClick()) Messages.sendToServer(new PacketCastSkill(5));
                 if (DASH_KEY.consumeClick()) SystemEvents.executeDash(player);
+
+                // Only allow opening the separate Quest Screen if they are a 'Player'
+                if (QUEST_KEY.consumeClick() && isPlayer) {
+                    Minecraft.getInstance().setScreen(new SystemQuestScreen());
+                }
             }
         }
     }
