@@ -9,14 +9,13 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = ManhwaMod.MODID, value = Dist.CLIENT)
 public class ClientEvents {
-
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
             Player player = Minecraft.getInstance().player;
             if (player == null) return;
 
-            // STATUS SCREEN
+            // Cascade: Unified Screen Logic
             while (KeyInputHandler.STATUS_KEY.consumeClick()) {
                 if (SystemData.isAwakened(player)) {
                     Minecraft.getInstance().setScreen(new AwakenedStatusScreen());
@@ -25,9 +24,12 @@ public class ClientEvents {
                 }
             }
 
-            // QUEST JOURNAL
             while (KeyInputHandler.QUEST_KEY.consumeClick()) {
                 Minecraft.getInstance().setScreen(new SystemQuestScreen());
+            }
+
+            while (KeyInputHandler.DASH_KEY.consumeClick()) {
+                SystemEvents.executeDash(player);
             }
         }
     }

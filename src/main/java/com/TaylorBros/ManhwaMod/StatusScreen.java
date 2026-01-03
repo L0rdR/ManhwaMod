@@ -14,7 +14,7 @@ public class StatusScreen extends Screen {
 
     @Override
     protected void init() {
-        // Redirect if already awakened
+        // Cascade: Immediate redirect to Awakened UI if status changes
         if (this.minecraft.player != null && SystemData.isAwakened(this.minecraft.player)) {
             this.minecraft.setScreen(new AwakenedStatusScreen());
             return;
@@ -23,29 +23,25 @@ public class StatusScreen extends Screen {
         int x = (this.width - WINDOW_WIDTH) / 2;
         int y = (this.height - WINDOW_HEIGHT) / 2;
 
-        // MULTIPLIER BUTTON
         this.addRenderableWidget(Button.builder(Component.literal("x" + multiplier), (button) -> {
             multiplier = (multiplier == 1) ? 10 : (multiplier == 10) ? 100 : 1;
             button.setMessage(Component.literal("x" + multiplier));
         }).bounds(x + 135, y + 10, 45, 20).build());
 
-        // STAT BUTTONS using centralized PacketUpdateStats
+        // Stat Buttons Cascade
         int buttonX = x + 160;
         int startY = y + 78;
-        addStatButton(buttonX, startY, "STR");
-        addStatButton(buttonX, startY + 20, "HP");
-        addStatButton(buttonX, startY + 40, "DEF");
-        addStatButton(buttonX, startY + 60, "SPD");
-        addStatButton(buttonX, startY + 80, "MANA");
+        String[] stats = {"STR", "HP", "DEF", "SPD", "MANA"};
+        for (int i = 0; i < stats.length; i++) {
+            addStatButton(buttonX, startY + (i * 20), stats[i]);
+        }
     }
 
     private void addStatButton(int x, int y, String type) {
         this.addRenderableWidget(Button.builder(Component.literal("+"), (button) -> {
             int points = SystemData.getPoints(this.minecraft.player);
-            int amountToAdd = Math.min(points, multiplier);
-            if (amountToAdd > 0) {
-                Messages.sendToServer(new PacketUpdateStats(amountToAdd, type));
-            }
+            int amount = Math.min(points, multiplier);
+            if (amount > 0) Messages.sendToServer(new PacketUpdateStats(amount, type));
         }).bounds(x, y, 20, 18).build());
     }
 
@@ -58,12 +54,13 @@ public class StatusScreen extends Screen {
         guiGraphics.fill(x, y, x + WINDOW_WIDTH, y + WINDOW_HEIGHT, 0xAA000000);
         guiGraphics.renderOutline(x, y, WINDOW_WIDTH, WINDOW_HEIGHT, 0xFF00AAFF);
 
-        // Use Constants for rendering
+        // Cascade: Rendering with Centralized Constants
         int level = this.minecraft.player.getPersistentData().getInt(SystemData.LEVEL);
-        int pts = SystemData.getPoints(this.minecraft.player);
+        int points = SystemData.getPoints(this.minecraft.player);
 
         guiGraphics.drawString(this.font, "§b§lSYSTEM STATUS", x + 12, y + 10, 0xFFFFFF);
-        guiGraphics.drawString(this.font, "§fPoints: §e" + pts, x + 15, y + 65, 0xFFFFFF);
+        guiGraphics.drawString(this.font, "Level: " + level, x + 15, y + 30, 0xFFFFFF);
+        guiGraphics.drawString(this.font, "Points: §e" + points, x + 15, y + 65, 0xFFFFFF);
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
