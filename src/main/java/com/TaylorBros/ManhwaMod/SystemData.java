@@ -2,7 +2,6 @@ package com.TaylorBros.ManhwaMod;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.nbt.CompoundTag;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -16,54 +15,30 @@ public class SystemData {
     public static final String RECIPE_PREFIX = "manhwamod.skill_recipe_";
     public static final String COST_PREFIX = "manhwamod.skill_cost_";
     public static final String SLOT_PREFIX = "manhwamod.slot_";
+    public static final String LEVEL = "manhwamod.level";
+    public static final String XP = "manhwamod.xp";
 
-    // --- FIX FOR AWAKENINGCOMMAND.JAVA ---
-    public static int getPoints(Player player) {
-        return player.getPersistentData().getInt(POINTS);
-    }
-
-    public static void savePoints(Player player, int val) {
-        player.getPersistentData().putInt(POINTS, val);
-        sync(player);
-    }
-
-    // --- CORE LOGIC ---
-    public static boolean isAwakened(Player player) {
-        return player.getPersistentData().getBoolean(AWAKENED);
-    }
-
-    public static void saveMana(Player player, int val) {
-        player.getPersistentData().putInt(MANA, val);
-        // Rule 2: Logic - Auto-unlock first skill at 50 mana
-        if (val >= 50) checkAndUnlock(player, 1, "Mana Blast", "§bRARE");
-        sync(player);
-    }
-
-    private static void checkAndUnlock(Player player, int id, String name, String rarity) {
-        String bank = player.getPersistentData().getString(BANK);
-        if (!bank.contains("[" + id + "]")) {
-            unlockSkill((ServerPlayer)player, id, name + ":" + rarity + ":System", 0);
-        }
-    }
-
+    // --- HELPER METHODS FOR SCREENS AND COMMANDS ---
+    public static boolean isAwakened(Player player) { return player.getPersistentData().getBoolean(AWAKENED); }
+    public static int getPoints(Player player) { return player.getPersistentData().getInt(POINTS); }
+    public static int getMana(Player player) { return player.getPersistentData().getInt(MANA); }
     public static int getCurrentMana(Player player) { return player.getPersistentData().getInt(CURRENT_MANA); }
-    public static void saveCurrentMana(Player player, int val) { player.getPersistentData().putInt(CURRENT_MANA, val); sync(player); }
+
+    // Stat Getters for StatusScreen
+    public static int getStrength(Player player) { return player.getPersistentData().getInt("manhwamod.strength"); }
+    public static int getHealthStat(Player player) { return player.getPersistentData().getInt("manhwamod.health"); }
+    public static int getDefense(Player player) { return player.getPersistentData().getInt("manhwamod.defense"); }
+    public static int getSpeed(Player player) { return player.getPersistentData().getInt("manhwamod.speed"); }
+
+    public static void saveCurrentMana(Player player, int val) {
+        player.getPersistentData().putInt(CURRENT_MANA, val);
+        sync(player);
+    }
 
     public static void sync(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
-            // RULE: Full NBT Sync to ensure UI and Commands see the same data
+            // RULE: Full NBT Sync to ensure UI and HUD stay identical
             Messages.sendToPlayer(new PacketSyncSystemData(player.getPersistentData()), serverPlayer);
-        }
-    }
-
-    public static void unlockSkill(ServerPlayer player, int id, String recipe, int cost) {
-        List<Integer> unlocked = getUnlockedSkills(player);
-        if (!unlocked.contains(id)) {
-            unlocked.add(id);
-            saveUnlockedSkills(player, unlocked);
-            player.getPersistentData().putString(RECIPE_PREFIX + id, recipe);
-            player.getPersistentData().putInt(COST_PREFIX + id, cost);
-            sync(player);
         }
     }
 
@@ -78,11 +53,5 @@ public class SystemData {
             }
         }
         return list;
-    }
-
-    public static void saveUnlockedSkills(Player player, List<Integer> list) {
-        StringBuilder sb = new StringBuilder();
-        for (int id : list) sb.append("[").append(id).append("]");
-        player.getPersistentData().putString(BANK, sb.toString());
     }
 }
