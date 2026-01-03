@@ -8,19 +8,30 @@ import java.util.ArrayList;
 
 public class SystemData {
     // RULE 1: CENTRALIZED CONSTANTS
+    public static final String POINTS = "manhwamod.points";
     public static final String AWAKENED = "manhwamod.awakened";
     public static final String MANA = "manhwamod.mana";
     public static final String CURRENT_MANA = "manhwamod.current_mana";
-    public static final String POINTS = "manhwamod.points";
     public static final String BANK = "manhwamod.unlocked_skills";
     public static final String RECIPE_PREFIX = "manhwamod.skill_recipe_";
     public static final String COST_PREFIX = "manhwamod.skill_cost_";
     public static final String SLOT_PREFIX = "manhwamod.slot_";
 
+    // --- FIX FOR AWAKENINGCOMMAND.JAVA ---
+    public static int getPoints(Player player) {
+        return player.getPersistentData().getInt(POINTS);
+    }
+
+    public static void savePoints(Player player, int val) {
+        player.getPersistentData().putInt(POINTS, val);
+        sync(player);
+    }
+
+    // --- CORE LOGIC ---
     public static void saveMana(Player player, int val) {
         player.getPersistentData().putInt(MANA, val);
+        // Automatic skill unlock logic
         if (val >= 50) checkAndUnlock(player, 1, "Mana Blast", "§bRARE");
-        if (val >= 100) checkAndUnlock(player, 2, "Mana Shield", "§6EPIC");
         sync(player);
     }
 
@@ -36,7 +47,7 @@ public class SystemData {
 
     public static void sync(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
-            // RULE: Send the whole NBT folder so EVERYTHING (names, slots) stays in sync
+            // RULE: Send full NBT sync to prevent "No Data" bugs
             Messages.sendToPlayer(new PacketSyncSystemData(player.getPersistentData()), serverPlayer);
         }
     }
