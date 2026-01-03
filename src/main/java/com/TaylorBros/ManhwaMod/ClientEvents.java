@@ -16,21 +16,23 @@ public class ClientEvents {
             Player player = Minecraft.getInstance().player;
             if (player == null) return;
 
-            // STATUS SCREEN - Cascaded to use SystemData.isSystemPlayer
             while (KeyInputHandler.STATUS_KEY.consumeClick()) {
                 if (SystemData.isAwakened(player)) {
                     if (SystemData.isSystemPlayer(player)) {
                         Minecraft.getInstance().setScreen(new StatusScreen());
                     } else {
-                        player.sendSystemMessage(Component.literal("§c[SYSTEM] §7Authentication Denied."));
+                        player.sendSystemMessage(Component.literal("§c[SYSTEM] §7Error: Use an Evaluation Crystal."));
                     }
+                } else {
+                    player.sendSystemMessage(Component.literal("§c[SYSTEM] §7Authentication Failed."));
                 }
             }
 
-            // QUEST JOURNAL - Synchronized logic
             while (KeyInputHandler.QUEST_KEY.consumeClick()) {
                 if (SystemData.isSystemPlayer(player)) {
                     Minecraft.getInstance().setScreen(new SystemQuestScreen());
+                } else {
+                    player.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fOnly 'Players' can access the Daily Log."));
                 }
             }
 

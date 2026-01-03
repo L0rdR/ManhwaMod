@@ -17,9 +17,8 @@ public class AwakeningCommand {
                                 .executes(context -> {
                                     int amount = IntegerArgumentType.getInteger(context, "amount");
                                     ServerPlayer serverPlayer = context.getSource().getPlayerOrException();
-                                    Player player = (Player) serverPlayer; // Handle as base Player for SystemData
+                                    Player player = (Player) serverPlayer;
 
-                                    // Using SystemData centralized logic
                                     int currentPoints = SystemData.getPoints(player);
                                     SystemData.savePoints(player, currentPoints + amount);
 
