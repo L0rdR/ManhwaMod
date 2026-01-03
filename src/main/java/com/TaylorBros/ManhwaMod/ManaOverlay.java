@@ -11,12 +11,11 @@ public class ManaOverlay {
 
     @SubscribeEvent
     public static void onRenderGui(RenderGuiOverlayEvent.Post event) {
-        // Only render on top of the experience bar
         if (event.getOverlay().id().equals(VanillaGuiOverlay.EXPERIENCE_BAR.id())) {
             Minecraft mc = Minecraft.getInstance();
             Player player = mc.player;
 
-            // RULE 2: Logic - Ensure player is awakened before drawing
+            // RULE 2: Logic - Use helper method from SystemData
             if (player != null && SystemData.isAwakened(player)) {
                 int width = event.getWindow().getGuiScaledWidth();
                 int height = event.getWindow().getGuiScaledHeight();
@@ -26,24 +25,20 @@ public class ManaOverlay {
                 int currentMana = player.getPersistentData().getInt(SystemData.CURRENT_MANA);
                 int maxMana = player.getPersistentData().getInt(SystemData.MANA);
 
-                // RULE 3: Fail-safe - Don't divide by zero
+                // Fail-safe to prevent divide-by-zero
                 if (maxMana <= 0) maxMana = 1;
 
-                // 2. Calculate Bar Width (Max width is 100 pixels)
                 float ratio = (float) currentMana / maxMana;
                 int barWidth = (int) (ratio * 100);
 
-                // 3. Render Logic
                 int x = width / 2 - 50;
                 int y = height - 50;
 
-                // Draw Background (Dark)
+                // Rendering with GuiGraphics (1.20.1 standard)
                 graphics.fill(x - 1, y - 1, x + 101, y + 6, 0xFF000000);
-                // Draw Mana Bar (Vibrant Blue for Manhwa Style)
                 graphics.fill(x, y, x + barWidth, y + 5, 0xFF00FBFF);
 
-                // 4. Text Label
-                String text = "MANA: " + currentMana + " / " + maxMana;
+                String text = currentMana + " / " + maxMana;
                 graphics.drawString(mc.font, text, x + 50 - (mc.font.width(text) / 2), y - 10, 0xFF00FBFF, true);
             }
         }
