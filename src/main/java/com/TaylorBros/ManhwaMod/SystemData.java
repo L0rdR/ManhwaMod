@@ -109,16 +109,17 @@ public class SystemData {
         }
     }
 
-    public static void unlockSkill(Player player, int skillId, String recipeData, int cost) {
-        CompoundTag data = player.getPersistentData();
-        data.putString("manhwamod.skill_recipe_" + skillId, recipeData);
-        data.putInt("manhwamod.skill_cost_" + skillId, cost);
-        String bank = data.getString(BANK_KEY);
-        if (!bank.contains("[" + skillId + "]")) {
-            bank += "[" + skillId + "]";
-            data.putString(BANK_KEY, bank);
-        }
-        sync(player);
+    public static void unlockSkill(ServerPlayer player, int id, String recipe, int cost) {
+        List<Integer> unlocked = getUnlockedSkills(player);
+        if (!unlocked.contains(id)) {
+            unlocked.add(id);
+            saveUnlockedSkills(player, unlocked);
+
+            // CRITICAL FIX: You were missing these two lines!
+            player.getPersistentData().putString("manhwamod.skill_recipe_" + id, recipe);
+            player.getPersistentData().putInt("manhwamod.skill_cost_" + id, cost);
+
+            sync(player);
     }
 
     public static List<Integer> getUnlockedSkills(Player player) {
