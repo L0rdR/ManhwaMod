@@ -20,20 +20,20 @@ public class AwakenedStatusScreen extends Screen {
         int x = (this.width - WINDOW_WIDTH) / 2;
         int y = (this.height - WINDOW_HEIGHT) / 2;
 
-        // Toggle View Button
+        // Toggle View Button (Always visible)
         this.addRenderableWidget(Button.builder(Component.literal(showSkills ? "VIEW STATS" : "VIEW SKILLS"), (button) -> {
             showSkills = !showSkills;
             this.rebuild();
         }).bounds(x + 10, y + WINDOW_HEIGHT - 25, 80, 18).build());
 
         if (!showSkills) {
-            // Multiplier Button
+            // STATS VIEW: Multiplier Button
             this.addRenderableWidget(Button.builder(Component.literal("x" + multiplier), (button) -> {
                 multiplier = (multiplier == 1) ? 10 : (multiplier == 10) ? 100 : 1;
                 this.rebuild();
             }).bounds(x + 135, y + 10, 45, 20).build());
 
-            // Stat Increase Buttons
+            // STATS VIEW: Increase Buttons
             int buttonX = x + 165;
             int startY = y + 78;
             addStatButton(buttonX, startY, "STR");
@@ -50,7 +50,7 @@ public class AwakenedStatusScreen extends Screen {
             int amount = Math.min(points, multiplier);
             if (amount > 0) {
                 Messages.sendToServer(new PacketUpdateStats(amount, type));
-                this.rebuild();
+                this.rebuild(); // Refresh UI to show updated stats
             }
         }).bounds(x, y, 18, 18).build());
     }
@@ -58,6 +58,26 @@ public class AwakenedStatusScreen extends Screen {
     private void rebuild() {
         this.clearWidgets();
         this.init();
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        int x = (this.width - WINDOW_WIDTH) / 2;
+        int y = (this.height - WINDOW_HEIGHT) / 2;
+
+        // RIGHT CLICK (button 1) to unequip in Skills View
+        if (showSkills && button == 1) {
+            for (int s = 0; s < 5; s++) {
+                int sX = x + 15 + (s * 34);
+                int sY = y + 145;
+                if (mouseX >= sX && mouseX <= sX + 30 && mouseY >= sY && mouseY <= sY + 30) {
+                    Messages.sendToServer(new PacketEquipSkill(s, 0));
+                    this.rebuild();
+                    return true;
+                }
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -141,26 +161,6 @@ public class AwakenedStatusScreen extends Screen {
                 g.pose().popPose();
             }
         }
-    }
-
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        int x = (this.width - WINDOW_WIDTH) / 2;
-        int y = (this.height - WINDOW_HEIGHT) / 2;
-
-        // RIGHT CLICK (button 1) to unequip
-        if (showSkills && button == 1) {
-            for (int s = 0; s < 5; s++) {
-                int sX = x + 15 + (s * 34);
-                int sY = y + 145;
-                if (mouseX >= sX && mouseX <= sX + 30 && mouseY >= sY && mouseY <= sY + 30) {
-                    Messages.sendToServer(new PacketEquipSkill(s, 0));
-                    this.rebuild();
-                    return true;
-                }
-            }
-        }
-        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     private void equipToNextEmptySlot(int skillId) {
