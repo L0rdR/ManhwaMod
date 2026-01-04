@@ -42,7 +42,7 @@ public class AwakenedStatusScreen extends Screen {
         }
     }
 
-    // THE FIX: Manual mouse click handling for Right-Click removal
+    // IMPLEMENTED: Manual mouse click handling for removal
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (showSkills) {
@@ -53,11 +53,11 @@ public class AwakenedStatusScreen extends Screen {
                 int slotX = x + 15 + (slotIdx * 34);
                 int slotY_Pos = y + 145;
 
-                // Check if mouse is inside this specific slot
+                // Hitbox detection for the 30x30 slot
                 if (mouseX >= slotX && mouseX <= slotX + 30 && mouseY >= slotY_Pos && mouseY <= slotY_Pos + 30) {
-                    // Right Click (button 1) removes the skill
-                    if (button == 1) {
-                        Messages.sendToServer(new PacketEquipSkill(slotIdx, 0));
+                    int equippedId = this.minecraft.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + slotIdx);
+                    if (equippedId != 0) {
+                        Messages.sendToServer(new PacketEquipSkill(slotIdx, 0)); // Clears slot
                         return true;
                     }
                 }
@@ -84,7 +84,7 @@ public class AwakenedStatusScreen extends Screen {
         guiGraphics.renderOutline(x, y, WINDOW_WIDTH, WINDOW_HEIGHT, 0xFF00AAFF);
 
         if (showSkills) {
-            renderSkillsTab(guiGraphics, x, y);
+            renderSkillsTab(guiGraphics, x, y, mouseX, mouseY);
         } else {
             renderStatsTab(guiGraphics, x, y);
         }
@@ -93,7 +93,7 @@ public class AwakenedStatusScreen extends Screen {
 
     private void renderStatsTab(GuiGraphics g, int x, int y) {
         g.drawString(this.font, "§b§lAWAKENED - " + this.minecraft.player.getName().getString().toUpperCase(), x + 12, y + 10, 0xFFFFFF);
-        int level = this.minecraft.player.getPersistentData().getInt("manhwamod.level");
+        int level = this.minecraft.player.getPersistentData().getInt(SystemData.LEVEL);
         String rank = this.minecraft.player.getPersistentData().getString("manhwamod.rank");
         if (rank.isEmpty()) rank = "E";
 
@@ -113,7 +113,7 @@ public class AwakenedStatusScreen extends Screen {
         drawStat(g, "Speed:", SystemData.getSpeed(this.minecraft.player), "§f", x + 15, y + 140);
 
         int manaStat = SystemData.getMana(this.minecraft.player);
-        int currentMana = SystemData.getCurrentMana(this.minecraft.player);
+        int currentMana = this.minecraft.player.getPersistentData().getInt(SystemData.CURRENT_MANA);
         drawStat(g, "Mana:", manaStat, "§d", x + 15, y + 160);
         g.drawString(this.font, "§8Pool: " + currentMana + " / " + (manaStat * 10), x + 25, y + 172, 0xFFFFFF);
     }
@@ -128,14 +128,15 @@ public class AwakenedStatusScreen extends Screen {
         };
     }
 
-    private void renderSkillsTab(GuiGraphics g, int x, int y) {
+    private void renderSkillsTab(GuiGraphics g, int x, int y, int mouseX, int mouseY) {
         g.drawString(this.font, "§b§lUNLOCKED ARTS", x + 12, y + 10, 0xFFFFFF);
         List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
         int slotY = y + 35;
 
+        // 1. TOP SECTION: Unlocked Skills List
         for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 4); i++) {
             int skillId = skills.get(i);
-            String recipe = this.minecraft.player.getPersistentData().getString("manhwamod.skill_recipe_" + skillId);
+            String recipe = this.minecraft.player.getPersistentData().getString(SystemData.RECIPE_PREFIX + skillId);
             String name = SkillEngine.getSkillName(recipe);
 
             boolean isEquipped = false;
@@ -154,6 +155,8 @@ public class AwakenedStatusScreen extends Screen {
 
             if (!isEquipped) {
                 int finalId = skillId;
+                // Buttons here are okay because they are manageable,
+                // but ideally these should be moved to init() for peak performance.
                 this.addRenderableWidget(Button.builder(Component.literal("EQ"), (b) -> {
                     equipToNextEmptySlot(finalId);
                 }).bounds(x + 150, slotY + 1, 22, 18).build());
@@ -163,18 +166,19 @@ public class AwakenedStatusScreen extends Screen {
             slotY += 22;
         }
 
-        // BOTTOM SECTION: Simplified Equipped Slots (No buttons, manual clicks)
-        g.drawString(this.font, "§bEquipped Arts (Right-Click to Remove):", x + 15, y + 130, 0xFFFFFF);
+        // 2. BOTTOM SECTION: 5 Equipped Slots (Visuals Only)
+        g.drawString(this.font, "§bEquipped Arts:", x + 15, y + 130, 0xFFFFFF);
         for (int slotIdx = 0; slotIdx < 5; slotIdx++) {
             int slotX = x + 15 + (slotIdx * 34);
             int slotY_Pos = y + 145;
             int equippedId = this.minecraft.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + slotIdx);
 
+            // Draw Slot Box
             g.fill(slotX, slotY_Pos, slotX + 30, slotY_Pos + 30, 0x66000000);
             g.renderOutline(slotX, slotY_Pos, 30, 30, 0xFF00AAFF);
 
             if (equippedId != 0) {
-                String recipe = this.minecraft.player.getPersistentData().getString("manhwamod.skill_recipe_" + equippedId);
+                String recipe = this.minecraft.player.getPersistentData().getString(SystemData.RECIPE_PREFIX + equippedId);
                 String skillName = SkillEngine.getSkillName(recipe);
 
                 g.pose().pushPose();
@@ -183,6 +187,12 @@ public class AwakenedStatusScreen extends Screen {
                 g.pose().scale(scale, scale, 1.0f);
                 g.drawCenteredString(this.font, skillName, 0, -4, 0xFFFFFF);
                 g.pose().popPose();
+
+                // HOVER FEEDBACK: This makes the slot turn red and say "CLR" when hovering
+                if (mouseX >= slotX && mouseX <= slotX + 30 && mouseY >= slotY_Pos && mouseY <= slotY_Pos + 30) {
+                    g.fill(slotX, slotY_Pos, slotX + 30, slotY_Pos + 30, 0x66FF0000); // Transparent red
+                    g.drawCenteredString(this.font, "CLR", slotX + 15, slotY_Pos + 10, 0xFFFFFF);
+                }
             } else {
                 g.drawString(this.font, "§8" + (slotIdx + 1), slotX + 12, slotY_Pos + 10, 0xFFFFFF);
             }
