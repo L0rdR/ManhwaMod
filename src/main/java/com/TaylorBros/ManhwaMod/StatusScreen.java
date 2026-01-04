@@ -10,6 +10,7 @@ public class StatusScreen extends Screen {
     private static final int WINDOW_HEIGHT = 210;
     private int multiplier = 1;
     private String currentTab = "STATS"; // Possible: STATS, SKILLS, QUESTS
+    private int skillScrollOffset = 0 ;;
 
     protected StatusScreen() { super(Component.literal("System Status")); }
 
@@ -94,8 +95,37 @@ public class StatusScreen extends Screen {
 
     private void renderSkillsTab(GuiGraphics g, int x, int y) {
         g.drawString(this.font, "§b§lSYSTEM: SKILLS", x + 12, y + 10, 0xFFFFFF);
-        // Skills logic here
+        List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
+
+        int slotY = y + 40;
+        // Use the offset to decide which skills to show
+        for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 6); i++) {
+            int skillId = skills.get(i);
+            g.fill(x + 15, slotY, x + 175, slotY + 20, 0x44FFFFFF);
+            g.drawString(this.font, "§eSkill ID: " + skillId, x + 20, slotY + 6, 0xFFFFFF);
+            slotY += 25;
+        }
+
+        if (skills.isEmpty()) {
+            g.drawString(this.font, "§7No skills detected in bank.", x + 20, y + 50, 0xFFFFFF);
+        } else {
+            g.drawString(this.font, "§8(Scroll to view more)", x + 60, y + WINDOW_HEIGHT - 40, 0x888888);
+        }
     }
+
+    // Add this method to enable scrolling
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (currentTab.equals("SKILLS")) {
+            List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
+            if (delta < 0 && skillScrollOffset + 6 < skills.size()) skillScrollOffset++;
+            if (delta > 0 && skillScrollOffset > 0) skillScrollOffset--;
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, delta);
+    }
+
+
 
     private void renderQuestTab(GuiGraphics g, int x, int y) {
         g.drawString(this.font, "§b§lSYSTEM: DAILY QUEST", x + 12, y + 10, 0xFFFFFF);

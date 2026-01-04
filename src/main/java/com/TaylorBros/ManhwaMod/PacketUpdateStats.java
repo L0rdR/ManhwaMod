@@ -32,10 +32,10 @@ public class PacketUpdateStats {
 
             int currentPoints = SystemData.getPoints(player);
             if (currentPoints >= amount) {
-                // 1. Get the current mana BEFORE updating
+                // 1. Get mana BEFORE the update
                 int oldMana = SystemData.getMana(player);
 
-                // 2. Map and update the stat (Same logic as before)
+                // 2. Map to the EXACT keys in SystemData.java
                 String nbtKey;
                 switch (statType) {
                     case "STR" -> nbtKey = "manhwamod.strength";
@@ -46,27 +46,29 @@ public class PacketUpdateStats {
                     default    -> nbtKey = "manhwamod." + statType.toLowerCase();
                 }
 
-                int newVal = oldMana + (statType.equals("MANA") ? amount : 0);
+                // 3. Update the stat
                 int currentStatVal = player.getPersistentData().getInt(nbtKey);
-                player.getPersistentData().putInt(nbtKey, currentStatVal + amount);
+                int newStatVal = currentStatVal + amount;
+                player.getPersistentData().putInt(nbtKey, newStatVal);
 
-                // 3. Deduct points
+                // 4. Deduct points
                 SystemData.savePoints(player, currentPoints - amount);
 
-                // 4. THE MILESTONE CHECK: Did they cross a multiple of 50?
+                // 5. THE MILESTONE CHECK: Logic for 50 mana points
                 if (statType.equals("MANA")) {
-                    int milestonesReached = (currentStatVal + amount) / 50;
                     int oldMilestones = currentStatVal / 50;
+                    int newMilestones = newStatVal / 50;
 
-                    if (milestonesReached > oldMilestones) {
-                        // Unlock a skill for every 50-point threshold crossed
-                        for (int i = 0; i < (milestonesReached - oldMilestones); i++) {
+                    if (newMilestones > oldMilestones) {
+                        // Give a skill for every 50-point gap (supports multipliers)
+                        for (int i = 0; i < (newMilestones - oldMilestones); i++) {
                             int skillId = player.getRandom().nextInt(1000);
                             SystemData.unlockSkill(player, skillId, "Mana Milestone Reward", 0);
                         }
                     }
                 }
-                SystemData.sync(player);
+
+                // Sync is handled inside savePoints and unlockSkill
             }
         });
         return true;

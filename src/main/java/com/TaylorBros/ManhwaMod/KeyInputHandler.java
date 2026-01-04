@@ -52,15 +52,18 @@ public class KeyInputHandler {
             boolean isPlayer = SystemData.isSystemPlayer(player);
 
             if (STATUS_KEY.consumeClick()) {
-                // NEW LOGIC: If they aren't even awakened, the key does absolutely nothing
-                if (isAwakened) {
-                    if (isPlayer) {
-                        // If they are a 'Player', show the premium screen (with Daily Quests)
-                        Minecraft.getInstance().setScreen(new StatusScreen());
-                    } else {
-                        // If they are just 'Awakened', show the basic stat plate
-                        Minecraft.getInstance().setScreen(new AwakenedStatusScreen());
-                    }
+                boolean isPlayer = SystemData.isSystemPlayer(player);
+                boolean isAwakened = SystemData.isAwakened(player);
+
+                if (isPlayer) {
+                    // Only "Players" get the full System Menu (Stats, Skills, Quests)
+                    Minecraft.getInstance().setScreen(new StatusScreen());
+                } else if (isAwakened) {
+                    // Awakened Non-Players get the basic Stat Plate
+                    Minecraft.getInstance().setScreen(new AwakenedStatusScreen());
+                } else {
+                    // Civilians (Non-players) get NOTHING.
+                    player.displayClientMessage(Component.literal("§cThe System is not available to you."), true);
                 }
             }
 
