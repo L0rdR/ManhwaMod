@@ -11,7 +11,7 @@ public class StatusScreen extends Screen {
     private static final int WINDOW_HEIGHT = 210;
     private int multiplier = 1;
     private String currentTab = "STATS";
-    private int skillScrollOffset = 0; // FIXED: Removed double semicolon
+    private int skillScrollOffset = 0;
 
     protected StatusScreen() { super(Component.literal("System Status")); }
 
@@ -79,8 +79,8 @@ public class StatusScreen extends Screen {
         g.drawString(this.font, "§b§lSYSTEM: " + this.minecraft.player.getName().getString().toUpperCase(), x + 12, y + 10, 0xFFFFFF);
 
         int pts = SystemData.getPoints(this.minecraft.player);
-        int manaStat = SystemData.getMana(this.minecraft.player); // e.g., 10
-        int currentMana = SystemData.getCurrentMana(this.minecraft.player); // e.g., 100
+        int manaStat = SystemData.getMana(this.minecraft.player);
+        int currentMana = SystemData.getCurrentMana(this.minecraft.player);
 
         g.drawString(this.font, "§fAvailable Points: §e" + pts, x + 15, y + 65, 0xFFFFFF);
 
@@ -89,58 +89,115 @@ public class StatusScreen extends Screen {
         drawStat(g, "Defense:", SystemData.getDefense(this.minecraft.player), "§7", x + 15, y + 120);
         drawStat(g, "Speed:", SystemData.getSpeed(this.minecraft.player), "§f", x + 15, y + 140);
 
-
-        // NEW: Get Level and Rank from NBT
         int level = this.minecraft.player.getPersistentData().getInt("manhwamod.level");
         String rank = this.minecraft.player.getPersistentData().getString("manhwamod.rank");
         if (rank.isEmpty()) rank = "E";
 
-        // Display Rank and Level with color coding
         g.drawString(this.font, "§fRank: " + getRankColor(rank) + rank, x + 15, y + 25, 0xFFFFFF);
         g.drawString(this.font, "§fLevel: §b" + level + "§7/1000", x + 15, y + 35, 0xFFFFFF);
 
-        // Level Progress Bar (Visual)
-        g.fill(x + 15, y + 46, x + 175, y + 48, 0xFF444444); // Bar Background
+        g.fill(x + 15, y + 46, x + 175, y + 48, 0xFF444444);
         int levelWidth = (int)((level / 1000.0) * 160);
-        g.fill(x + 15, y + 46, x + 15 + levelWidth, y + 48, 0xFF00AAFF); // Blue Level Bar
+        g.fill(x + 15, y + 46, x + 15 + levelWidth, y + 48, 0xFF00AAFF);
 
-        // DEFINITIVE BUSINESS LOGIC:
-        // Show the raw Stat (10) so the "+" buttons make sense
         drawStat(g, "Mana:", manaStat, "§d", x + 15, y + 160);
-
-        // Show the calculated Pool (100 / 100) on the sub-line
         g.drawString(this.font, "§8Pool: " + currentMana + " / " + (manaStat * 10), x + 25, y + 172, 0xFFFFFF);
     }
-    // Helper for Rank Colors
+
     private String getRankColor(String rank) {
         return switch (rank) {
-            case "SSS", "SS" -> "§6§l"; // Gold
-            case "S" -> "§e§l";         // Yellow
-            case "A" -> "§c";           // Red
-            case "B" -> "§d";           // Purple
-            default -> "§f";            // White/Gray
+            case "SSS", "SS" -> "§6§l";
+            case "S" -> "§e§l";
+            case "A" -> "§c";
+            case "B" -> "§d";
+            default -> "§f";
         };
     }
 
-
     private void renderSkillsTab(GuiGraphics g, int x, int y) {
-        g.drawString(this.font, "§b§lSYSTEM: SKILLS", x + 12, y + 10, 0xFFFFFF);
+        g.drawString(this.font, "§b§lUNLOCKED ARTS", x + 12, y + 10, 0xFFFFFF);
         List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
+        int slotY = y + 35;
 
-        int slotY = y + 40;
-        int spacing = 28; // FIXED: Better spacing to prevent overlap
-        for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 5); i++) {
+        // 1. TOP SECTION: Unlocked Skills List
+        for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 4); i++) {
             int skillId = skills.get(i);
             String recipe = this.minecraft.player.getPersistentData().getString("manhwamod.skill_recipe_" + skillId);
-            String displayName = SkillEngine.getSkillName(recipe); // FIXED: Shows "FIRE BEAM" instead of ID
+            String name = SkillEngine.getSkillName(recipe);
 
-            g.fill(x + 15, slotY, x + 175, slotY + 22, 0x44FFFFFF);
-            g.drawString(this.font, "§e" + displayName, x + 20, slotY + 7, 0xFFFFFF);
-            slotY += spacing;
+            // CHECK IF EQUIPPED (To grey it out)
+            boolean isEquipped = false;
+            for (int checkSlot = 0; checkSlot < 5; checkSlot++) {
+                if (this.minecraft.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + checkSlot) == skillId) {
+                    isEquipped = true;
+                    break;
+                }
+            }
+
+            int bgColor = isEquipped ? 0x22888888 : 0x44FFFFFF; // Darker grey if equipped
+            String nameColor = isEquipped ? "§7" : "§e";
+
+            g.fill(x + 15, slotY, x + 175, slotY + 20, bgColor);
+            g.drawString(this.font, nameColor + name, x + 20, slotY + 6, 0xFFFFFF);
+
+            // Only show EQ button if NOT equipped
+            if (!isEquipped) {
+                int finalId = skillId;
+                this.addRenderableWidget(Button.builder(Component.literal("EQ"), (b) -> {
+                    equipToNextEmptySlot(finalId);
+                }).bounds(x + 150, slotY + 1, 22, 18).build());
+            } else {
+                g.drawString(this.font, "§a✔", x + 155, slotY + 6, 0xFFFFFF);
+            }
+
+            slotY += 22;
         }
 
-        if (skills.isEmpty()) {
-            g.drawString(this.font, "§7No skills detected in bank.", x + 20, y + 50, 0xFFFFFF);
+        // 2. BOTTOM SECTION: 5 Equipped Slots
+        g.drawString(this.font, "§bEquipped Arts (Click to Remove):", x + 15, y + 130, 0xFFFFFF);
+        for (int slotIdx = 0; slotIdx < 5; slotIdx++) {
+            int slotX = x + 15 + (slotIdx * 34);
+            int slotY_Pos = y + 145;
+            int equippedId = this.minecraft.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + slotIdx);
+
+            // Draw Slot Box
+            g.fill(slotX, slotY_Pos, slotX + 30, slotY_Pos + 30, 0x66000000);
+            g.renderOutline(slotX, slotY_Pos, 30, 30, 0xFF00AAFF);
+
+            // CLICK TO REMOVE: Invisible button over the slot
+            final int finalSlot = slotIdx;
+            this.addRenderableWidget(Button.builder(Component.literal(""), (button) -> {
+                Messages.sendToServer(new PacketEquipSkill(finalSlot, 0)); // 0 clears the slot
+            }).bounds(slotX, slotY_Pos, 30, 30).build());
+
+            if (equippedId != 0) {
+                String recipe = this.minecraft.player.getPersistentData().getString("manhwamod.skill_recipe_" + equippedId);
+                String skillName = SkillEngine.getSkillName(recipe);
+
+                // SCALE FULL NAME TO FIT
+                g.pose().pushPose();
+                float scale = skillName.length() > 6 ? 0.55f : 0.75f;
+                g.pose().translate(slotX + 15, slotY_Pos + 15, 0);
+                g.pose().scale(scale, scale, 1.0f);
+                g.drawCenteredString(this.font, skillName, 0, -4, 0xFFFFFF);
+                g.pose().popPose();
+
+                // Red 'X' indicator
+                g.drawString(this.font, "§c§l×", slotX + 22, slotY_Pos + 2, 0xFFFFFF);
+            } else {
+                g.drawString(this.font, "§8" + (slotIdx + 1), slotX + 12, slotY_Pos + 10, 0xFFFFFF);
+            }
+        }
+    }
+
+    private void equipToNextEmptySlot(int skillId) {
+        for (int slot = 0; slot < 5; slot++) {
+            int currentlyEquipped = this.minecraft.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + slot);
+            if (currentlyEquipped == skillId) return;
+            if (currentlyEquipped == 0) {
+                Messages.sendToServer(new PacketEquipSkill(slot, skillId));
+                return;
+            }
         }
     }
 
@@ -158,10 +215,10 @@ public class StatusScreen extends Screen {
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (currentTab.equals("SKILLS")) {
             List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
-            if (delta < 0 && skillScrollOffset + 5 < skills.size()) skillScrollOffset++;
+            if (delta < 0 && skillScrollOffset + 4 < skills.size()) skillScrollOffset++;
             if (delta > 0 && skillScrollOffset > 0) skillScrollOffset--;
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, delta);
     }
-} // FIXED: Final closing bracket
+}
