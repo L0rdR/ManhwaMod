@@ -89,6 +89,21 @@ public class StatusScreen extends Screen {
         drawStat(g, "Defense:", SystemData.getDefense(this.minecraft.player), "§7", x + 15, y + 120);
         drawStat(g, "Speed:", SystemData.getSpeed(this.minecraft.player), "§f", x + 15, y + 140);
 
+
+        // NEW: Get Level and Rank from NBT
+        int level = this.minecraft.player.getPersistentData().getInt("manhwamod.level");
+        String rank = this.minecraft.player.getPersistentData().getString("manhwamod.rank");
+        if (rank.isEmpty()) rank = "E";
+
+        // Display Rank and Level with color coding
+        g.drawString(this.font, "§fRank: " + getRankColor(rank) + rank, x + 15, y + 25, 0xFFFFFF);
+        g.drawString(this.font, "§fLevel: §b" + level + "§7/1000", x + 15, y + 35, 0xFFFFFF);
+
+        // Level Progress Bar (Visual)
+        g.fill(x + 15, y + 46, x + 175, y + 48, 0xFF444444); // Bar Background
+        int levelWidth = (int)((level / 1000.0) * 160);
+        g.fill(x + 15, y + 46, x + 15 + levelWidth, y + 48, 0xFF00AAFF); // Blue Level Bar
+
         // DEFINITIVE BUSINESS LOGIC:
         // Show the raw Stat (10) so the "+" buttons make sense
         drawStat(g, "Mana:", manaStat, "§d", x + 15, y + 160);
@@ -96,6 +111,17 @@ public class StatusScreen extends Screen {
         // Show the calculated Pool (100 / 100) on the sub-line
         g.drawString(this.font, "§8Pool: " + currentMana + " / " + (manaStat * 10), x + 25, y + 172, 0xFFFFFF);
     }
+    // Helper for Rank Colors
+    private String getRankColor(String rank) {
+        return switch (rank) {
+            case "SSS", "SS" -> "§6§l"; // Gold
+            case "S" -> "§e§l";         // Yellow
+            case "A" -> "§c";           // Red
+            case "B" -> "§d";           // Purple
+            default -> "§f";            // White/Gray
+        };
+    }
+
 
     private void renderSkillsTab(GuiGraphics g, int x, int y) {
         g.drawString(this.font, "§b§lSYSTEM: SKILLS", x + 12, y + 10, 0xFFFFFF);

@@ -70,11 +70,19 @@ public class AwakenedStatusScreen extends Screen {
         // 1. Render Header and Name
         g.drawString(this.font, "§b§lAWAKENED - " + this.minecraft.player.getName().getString().toUpperCase(), x + 12, y + 10, 0xFFFFFF);
 
-        // 2. NEW: Render Level and Rank directly under the name
-        // Business logic: Rank is usually E, D, C, B, A, S
-        String playerRank = this.minecraft.player.getPersistentData().getString("manhwamod.rank");        int playerLevel = this.minecraft.player.getPersistentData().getInt("manhwamod.level");
-        g.drawString(this.font, "§fLevel: §b" + playerLevel, x + 15, y + 25, 0xFFFFFF);
-        g.drawString(this.font, "§fRank: §e§l" + playerRank, x + 15, y + 35, 0xFFFFFF);
+       // NEW: Get Level and Rank from NBT
+        int level = this.minecraft.player.getPersistentData().getInt("manhwamod.level");
+        String rank = this.minecraft.player.getPersistentData().getString("manhwamod.rank");
+        if (rank.isEmpty()) rank = "E";
+
+        // Display Rank and Level with color coding
+        g.drawString(this.font, "§fRank: " + getRankColor(rank) + rank, x + 15, y + 25, 0xFFFFFF);
+        g.drawString(this.font, "§fLevel: §b" + level + "§7/1000", x + 15, y + 35, 0xFFFFFF);
+
+        // Level Progress Bar (Visual)
+        g.fill(x + 15, y + 46, x + 175, y + 48, 0xFF444444); // Bar Background
+        int levelWidth = (int)((level / 1000.0) * 160);
+        g.fill(x + 15, y + 46, x + 15 + levelWidth, y + 48, 0xFF00AAFF); // Blue Level Bar
 
         // 3. Render Available Points
         int pts = SystemData.getPoints(this.minecraft.player);
@@ -92,6 +100,16 @@ public class AwakenedStatusScreen extends Screen {
 
         drawStat(g, "Mana:", manaStat, "§d", x + 15, y + 160);
         g.drawString(this.font, "§8Pool: " + currentMana + " / " + (manaStat * 10), x + 25, y + 172, 0xFFFFFF);
+    }
+    // Helper for Rank Colors
+    private String getRankColor(String rank) {
+        return switch (rank) {
+            case "SSS", "SS" -> "§6§l"; // Gold
+            case "S" -> "§e§l";         // Yellow
+            case "A" -> "§c";           // Red
+            case "B" -> "§d";           // Purple
+            default -> "§f";            // White/Gray
+        };
     }
 
     private void renderSkillsTab(GuiGraphics g, int x, int y) {

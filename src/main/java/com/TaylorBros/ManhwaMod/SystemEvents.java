@@ -68,4 +68,25 @@ public class SystemEvents {
             SystemData.sync(sPlayer);
         }
     }
-}
+        private static void updatePlayerRank(ServerPlayer player) {
+            int level = player.getPersistentData().getInt("manhwamod.level");
+            String currentRank = player.getPersistentData().getString("manhwamod.rank");
+            String newRank = "E";
+
+            // 1000 Level Scaling Thresholds
+            if (level >= 900) newRank = "SSS";     // Monarch Rank
+            else if (level >= 750) newRank = "SS";  // King Rank
+            else if (level >= 600) newRank = "S";   // World-Class
+            else if (level >= 450) newRank = "A";   // High-Ranker
+            else if (level >= 300) newRank = "B";
+            else if (level >= 150) newRank = "C";
+            else if (level >= 50) newRank = "D";
+            else newRank = "E";
+
+            if (!newRank.equals(currentRank)) {
+                player.getPersistentData().putString("manhwamod.rank", newRank);
+                player.displayClientMessage(net.minecraft.network.chat.Component.literal("§b§l[SYSTEM] §fRank Up: §e§l" + newRank), false);
+                SystemData.sync(player);
+            }
+        }
+    }
