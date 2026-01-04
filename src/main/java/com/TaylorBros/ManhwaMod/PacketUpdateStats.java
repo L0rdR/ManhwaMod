@@ -34,25 +34,21 @@ public class PacketUpdateStats {
 
             int currentPoints = SystemData.getPoints(player);
             if (currentPoints >= amount) {
-                // 1. Map to exact tags used in SystemData.java
                 String nbtKey = switch (statType) {
                     case "STR" -> "manhwamod.strength";
-                    case "HP" -> "manhwamod.health"; // FIXED: Matches SystemData tag
+                    case "HP" -> "manhwamod.health";
                     case "DEF" -> "manhwamod.defense";
                     case "SPD" -> "manhwamod.speed";
-                    case "MANA" -> "manhwamod.mana";
+                    case "MANA" -> SystemData.MANA; // Using your constant
                     default -> "manhwamod." + statType.toLowerCase();
                 };
 
                 int currentVal = player.getPersistentData().getInt(nbtKey);
                 int newVal = currentVal + amount;
 
-                // 2. Update stat and deduct points
                 player.getPersistentData().putInt(nbtKey, newVal);
                 SystemData.savePoints(player, currentPoints - amount);
 
-                // 3. THE 50 MANA FIX: Check milestone boundaries
-                // 3. THE 50 MANA FIX: Check milestone boundaries
                 if (statType.equals("MANA")) {
                     int oldMilestones = currentVal / 50;
                     int newMilestones = newVal / 50;
@@ -62,7 +58,7 @@ public class PacketUpdateStats {
                             String recipe = "";
                             boolean isDuplicate = true;
 
-                            // UNIQUE CHECK: Keep rolling until the recipe is brand new
+                            // NO REPEAT LOGIC: Uses your SystemData.getUnlockedSkills
                             while (isDuplicate) {
                                 SkillTags.Shape s = SkillTags.Shape.values()[player.getRandom().nextInt(SkillTags.Shape.values().length)];
                                 SkillTags.Element e = SkillTags.Element.values()[player.getRandom().nextInt(SkillTags.Element.values().length)];
@@ -70,10 +66,8 @@ public class PacketUpdateStats {
                                 recipe = s.name() + ":" + e.name() + ":" + m.name();
 
                                 isDuplicate = false;
-                                // Use your existing method to get all currently owned IDs
                                 java.util.List<Integer> ownedIds = SystemData.getUnlockedSkills(player);
                                 for (int id : ownedIds) {
-                                    // Check if the recipe for this ID matches our new roll
                                     String existing = player.getPersistentData().getString(SystemData.RECIPE_PREFIX + id);
                                     if (existing.equals(recipe)) {
                                         isDuplicate = true;
@@ -86,10 +80,11 @@ public class PacketUpdateStats {
                             SystemData.unlockSkill(player, skillId, recipe, 25);
                             player.displayClientMessage(Component.literal("§b§l[SYSTEM] §fUnique Art Learned: §e" + SkillEngine.getSkillName(recipe)), true);
                         }
-                        SystemData.sync(player);
+                    }
                 }
+                SystemData.sync(player);
             }
-        }); // FIXED: Closes enqueueWork
+        }); // This closes enqueueWork correctly
         return true;
-    } // FIXED: Closes handle
-} // FIXED: Closes class
+    }
+}

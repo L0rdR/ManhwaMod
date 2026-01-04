@@ -285,5 +285,6 @@ public class SystemEvents {
             // Math.min ensures the new value never "overflows" the cap
             SystemData.saveCurrentMana(player, Math.min(current + 1, maxMana));
 }
+        SystemData.sync(player);
     }
 }
