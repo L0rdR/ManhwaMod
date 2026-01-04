@@ -6,32 +6,39 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class SystemData {
-    // RULE 1: CENTRALIZED CONSTANTS
     public static final String POINTS = "manhwamod.points";
     public static final String AWAKENED = "manhwamod.awakened";
     public static final String IS_SYSTEM = "manhwamod.is_system_player";
-    public static final String MANA = "manhwamod.mana";
-    public static final String CURRENT_MANA = "manhwamod.current_mana";
     public static final String LEVEL = "manhwamod.level";
     public static final String XP = "manhwamod.xp";
     public static final String BANK = "manhwamod.unlocked_skills";
+
+    // THE FIX: Centralized Keys
     public static final String SLOT_PREFIX = "manhwamod.slot_";
+    public static final String STR = "manhwamod.str";
+    public static final String HP  = "manhwamod.health_stat";
+    public static final String DEF = "manhwamod.def";
+    public static final String SPD = "manhwamod.spd";
+    public static final String MANA = "manhwamod.mana";
+
+    public static final String CURRENT_MANA = "manhwamod.current_mana";
     public static final String RECIPE_PREFIX = "manhwamod.skill_recipe_";
     public static final String COST_PREFIX = "manhwamod.skill_cost_";
 
-    // --- ACCESSORS ---
+    // --- ACCESSORS (Now correctly linked to the keys above) ---
+    public static int getStrength(Player player) { return player.getPersistentData().getInt(STR); }
+    public static int getHealthStat(Player player) { return player.getPersistentData().getInt(HP); }
+    public static int getDefense(Player player) { return player.getPersistentData().getInt(DEF); }
+    public static int getSpeed(Player player) { return player.getPersistentData().getInt(SPD); }
+    public static int getMana(Player player) { return player.getPersistentData().getInt(MANA); }
+
+
+    public static int getCurrentMana(Player player) {
+        return player.getPersistentData().getInt(CURRENT_MANA);
+    }
+    public static int getPoints(Player player) { return player.getPersistentData().getInt(POINTS); }
     public static boolean isAwakened(Player player) { return player.getPersistentData().getBoolean(AWAKENED); }
     public static boolean isSystemPlayer(Player player) { return player.getPersistentData().getBoolean(IS_SYSTEM); }
-    public static int getPoints(Player player) { return player.getPersistentData().getInt(POINTS); }
-    public static int getMana(Player player) { return player.getPersistentData().getInt(MANA); }
-    public static int getCurrentMana(Player player) { return player.getPersistentData().getInt(CURRENT_MANA); }
-
-
-    public static int getStrength(Player player) { return player.getPersistentData().getInt("manhwamod.strength"); }
-    public static int getHealthStat(Player player) { return player.getPersistentData().getInt("manhwamod.health"); }
-    public static int getDefense(Player player) { return player.getPersistentData().getInt("manhwamod.defense"); }
-    public static int getSpeed(Player player) { return player.getPersistentData().getInt("manhwamod.speed"); }
-
     // --- MUTATORS ---
     public static void savePoints(Player player, int val) { player.getPersistentData().putInt(POINTS, val); sync(player); }
     public static void saveCurrentMana(Player player, int val) {
@@ -43,7 +50,6 @@ public class SystemData {
         sync(player);
     }
 
-    // FIXED: Added the missing unlockSkill method
     public static void unlockSkill(Player player, int id, String recipe, int cost) {
         List<Integer> unlocked = getUnlockedSkills(player);
         if (!unlocked.contains(id)) {
@@ -64,8 +70,10 @@ public class SystemData {
         return list;
     }
 
+    // --- SYNCING ---
     public static void sync(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
+            // This tells the Client to update its UI with the new Server data instantly
             Messages.sendToPlayer(new PacketSyncSystemData(player.getPersistentData()), serverPlayer);
         }
     }

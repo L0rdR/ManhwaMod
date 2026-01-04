@@ -13,6 +13,7 @@ public class AwakenedStatusScreen extends Screen {
     private boolean showSkills = false;
     private int skillScrollOffset = 0;
 
+
     protected AwakenedStatusScreen() { super(Component.literal("Awakened Status")); }
 
     @Override
