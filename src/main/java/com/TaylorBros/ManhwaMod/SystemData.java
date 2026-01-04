@@ -42,17 +42,6 @@ public class SystemData {
         player.getPersistentData().putBoolean(AWAKENED, val);
         sync(player);
     }
-    // Add to SystemData.java
-    public static final String EQUIPPED_PREFIX = "manhwamod.equipped_slot_";
-
-    public static void equipSkill(Player player, int slot, int skillId) {
-        player.getPersistentData().putInt(EQUIPPED_PREFIX + slot, skillId);
-        sync(player);
-    }
-
-    public static int getEquippedSkill(Player player, int slot) {
-        return player.getPersistentData().getInt(EQUIPPED_PREFIX + slot);
-    }
 
     // FIXED: Added the missing unlockSkill method
     public static void unlockSkill(Player player, int id, String recipe, int cost) {
