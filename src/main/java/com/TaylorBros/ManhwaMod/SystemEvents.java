@@ -44,8 +44,10 @@ public class SystemEvents {
 
             if (currentMana < maxCap) {
                 SystemData.saveCurrentMana(player, currentMana + 1);
-            } else if (currentMana > maxCap) {
-                SystemData.saveCurrentMana(player, maxCap); // Force back to cap
+            }
+            // 5. THE SAFETY: If it overflows (like your current bug), snap it back to 100
+            else if (currentMana > maxCap) {
+                SystemData.saveCurrentMana(player, maxCap);
             }
         }
     }
