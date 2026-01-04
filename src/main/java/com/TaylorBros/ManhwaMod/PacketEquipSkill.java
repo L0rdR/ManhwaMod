@@ -29,13 +29,13 @@ public class PacketEquipSkill {
         context.enqueueWork(() -> {
             ServerPlayer player = context.getSender();
             if (player != null) {
-                if (SystemData.getUnlockedSkills(player).contains(skillId)) {
-                    // Changed 'slot' to 'slotId' to match the field name
+                // THE FIX: Allow the update if the skillId is 0 (clearing) OR if the player has unlocked the skill
+                if (skillId == 0 || SystemData.getUnlockedSkills(player).contains(skillId)) {
                     player.getPersistentData().putInt(SystemData.SLOT_PREFIX + slotId, skillId);
                     SystemData.sync(player);
                 }
             }
-        }); // Added closing brace and parenthesis
+        });
         return true;
     }
 }
