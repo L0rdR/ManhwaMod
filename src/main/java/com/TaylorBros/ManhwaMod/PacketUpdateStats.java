@@ -77,9 +77,10 @@ public class PacketUpdateStats {
                             // 5. NOTIFY THE PLAYER
                             player.displayClientMessage(Component.literal("§b§l[SYSTEM] §fNew Art Learned: §e" + skillName), true);
                         }
+                        // SYNC after all milestones are processed
+                        SystemData.sync(player);
                     }
-                    // 6. SYNC DATA AFTER UPDATES
-                    SystemData.sync(player);
+                    return true;
                 }
             }
         });

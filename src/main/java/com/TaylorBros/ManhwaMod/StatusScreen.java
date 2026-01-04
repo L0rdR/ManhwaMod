@@ -120,21 +120,6 @@ public class StatusScreen extends Screen {
         }
     }
 
-    // Add this method to enable scrolling
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if (currentTab.equals("SKILLS")) {
-            List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
-            // Scroll down (delta < 0) or up (delta > 0)
-            if (delta < 0 && skillScrollOffset + 6 < skills.size()) skillScrollOffset++;
-            if (delta > 0 && skillScrollOffset > 0) skillScrollOffset--;
-            return true;
-        }
-        return super.mouseScrolled(mouseX, mouseY, delta);
-    }
-
-
-
     private void renderQuestTab(GuiGraphics g, int x, int y) {
         g.drawString(this.font, "§b§lSYSTEM: DAILY QUEST", x + 12, y + 10, 0xFFFFFF);
         g.drawString(this.font, "§f- Pushups: §70/100", x + 15, y + 40, 0xFFFFFF);
@@ -145,15 +130,15 @@ private void drawStat(GuiGraphics g, String label, int val, String color, int x,
     g.drawString(this.font, color + val, x + 85, y, 0xFFFFFF);
 }
 
-// ENSURE THIS METHOD IS INSIDE THE CLASS BRACKET
 @Override
 public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
     if (currentTab.equals("SKILLS")) {
         List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
-        // Scroll down (delta < 0) or up (delta > 0)
+        // Business logic: Scroll through the bank
         if (delta < 0 && skillScrollOffset + 5 < skills.size()) skillScrollOffset++;
         if (delta > 0 && skillScrollOffset > 0) skillScrollOffset--;
         return true;
     }
     return super.mouseScrolled(mouseX, mouseY, delta);
-} // <--- THIS IS THE FINAL CLASS BRACKET. NOTHING SHOULD BE BELOW THIS.
+
+} // <--- THIS bracket must be the very last thing in the file.
