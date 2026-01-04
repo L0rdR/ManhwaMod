@@ -51,6 +51,7 @@ public class PacketUpdateStats {
                 SystemData.savePoints(player, currentPoints - amount);
 
                 // 3. THE 50 MANA FIX: Check milestone boundaries
+                // 3. THE 50 MANA FIX: Check milestone boundaries
                 if (statType.equals("MANA")) {
                     int oldMilestones = currentVal / 50;
                     int newMilestones = newVal / 50;
@@ -68,18 +69,20 @@ public class PacketUpdateStats {
                             // 3. GENERATE A FORMATTED NAME USING YOUR ENGINE
                             String skillName = SkillEngine.getSkillName(recipe);
                             int skillId = player.getRandom().nextInt(1000);
-                            int cost = 10 + player.getRandom().nextInt(40); // Random Mana Cost
+                            int cost = 10 + player.getRandom().nextInt(40);
 
                             // 4. UNLOCK USING YOUR TAG SYSTEM
                             SystemData.unlockSkill(player, skillId, recipe, cost);
 
                             // 5. NOTIFY THE PLAYER
-                            player.displayClientMessage(net.minecraft.network.chat.Component.literal("§b§l[SYSTEM] §fNew Art Learned: §e" + skillName), true);
+                            player.displayClientMessage(Component.literal("§b§l[SYSTEM] §fNew Art Learned: §e" + skillName), true);
                         }
-                        SystemData.sync(player);
                     }
+                    // 6. SYNC DATA AFTER UPDATES
+                    SystemData.sync(player);
                 }
-            });
-            return true;
-        }
+            }
+        });
+        return true;
     }
+}

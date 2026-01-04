@@ -104,15 +104,9 @@ public class StatusScreen extends Screen {
         for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 6); i++) {
             int skillId = skills.get(i);
 
-            // PULL THE RECIPE FROM THE NBT TAG SYSTEM
             String recipe = this.minecraft.player.getPersistentData().getString("manhwamod.skill_recipe_" + skillId);
-
-            // USE YOUR ENGINE TO FORMAT THE NAME (e.g., "FIRE BEAM")
             String displayName = SkillEngine.getSkillName(recipe);
-
-            g.fill(x + 15, slotY, x + 175, slotY + 20, 0x44FFFFFF);
             g.drawString(this.font, "§e" + displayName, x + 20, slotY + 6, 0xFFFFFF);
-            slotY += 25;
         }
 
         if (skills.isEmpty()) {
