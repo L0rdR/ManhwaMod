@@ -67,7 +67,6 @@ public class StatusScreen extends Screen {
         guiGraphics.fill(x, y, x + WINDOW_WIDTH, y + WINDOW_HEIGHT, 0xAA000000);
         guiGraphics.renderOutline(x, y, WINDOW_WIDTH, WINDOW_HEIGHT, 0xFF00AAFF);
 
-        // FIXED: Passed mouseX and mouseY to renderSkillsTab
         switch (currentTab) {
             case "STATS" -> renderStatsTab(guiGraphics, x, y);
             case "SKILLS" -> renderSkillsTab(guiGraphics, x, y, mouseX, mouseY);
@@ -78,13 +77,11 @@ public class StatusScreen extends Screen {
 
     private void renderStatsTab(GuiGraphics g, int x, int y) {
         g.drawString(this.font, "§b§lSYSTEM: " + this.minecraft.player.getName().getString().toUpperCase(), x + 12, y + 10, 0xFFFFFF);
-
         int pts = SystemData.getPoints(this.minecraft.player);
         int manaStat = SystemData.getMana(this.minecraft.player);
-        int currentMana = this.minecraft.player.getPersistentData().getInt(SystemData.CURRENT_MANA); // Standardized key
+        int currentMana = this.minecraft.player.getPersistentData().getInt(SystemData.CURRENT_MANA);
 
         g.drawString(this.font, "§fAvailable Points: §e" + pts, x + 15, y + 65, 0xFFFFFF);
-
         drawStat(g, "Strength:", SystemData.getStrength(this.minecraft.player), "§c", x + 15, y + 80);
         drawStat(g, "Health:", SystemData.getHealthStat(this.minecraft.player), "§a", x + 15, y + 100);
         drawStat(g, "Defense:", SystemData.getDefense(this.minecraft.player), "§7", x + 15, y + 120);
@@ -115,29 +112,8 @@ public class StatusScreen extends Screen {
         };
     }
 
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (currentTab.equals("SKILLS") && button == 0) {
-            int x = (this.width - WINDOW_WIDTH) / 2;
-            int y = (this.height - WINDOW_HEIGHT) / 2;
 
-            for (int slotIdx = 0; slotIdx < 5; slotIdx++) {
-                int slotX = x + 15 + (slotIdx * 34);
-                int slotY_Pos = y + 145;
-
-                if (mouseX >= slotX && mouseX <= slotX + 30 && mouseY >= slotY_Pos && mouseY <= slotY_Pos + 30) {
-                    int equippedId = this.minecraft.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + slotIdx);
-                    if (equippedId != 0) {
-                        Messages.sendToServer(new PacketEquipSkill(slotIdx, 0));
-                        return true;
-                    }
-                }
-            }
-        }
-        return super.mouseClicked(mouseX, mouseY, button);
-    }
-
-    private void renderSkillsTab(GuiGraphics g, int x, int y, int mouseX, int mouseY) {
+    public void renderSkillsTab(GuiGraphics g, int x, int y, int mouseX, int mouseY) {
         g.drawString(this.font, "§b§lUNLOCKED ARTS", x + 12, y + 10, 0xFFFFFF);
         List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
         int slotY = y + 35;
@@ -155,17 +131,12 @@ public class StatusScreen extends Screen {
                 }
             }
 
-            int bgColor = isEquipped ? 0x22888888 : 0x44FFFFFF;
-            String nameColor = isEquipped ? "§7" : "§e";
-
-            g.fill(x + 15, slotY, x + 175, slotY + 20, bgColor);
-            g.drawString(this.font, nameColor + name, x + 20, slotY + 6, 0xFFFFFF);
+            g.fill(x + 15, slotY, x + 175, slotY + 20, isEquipped ? 0x22888888 : 0x44FFFFFF);
+            g.drawString(this.font, (isEquipped ? "§7" : "§e") + name, x + 20, slotY + 6, 0xFFFFFF);
 
             if (!isEquipped) {
-                int finalId = skillId;
-                this.addRenderableWidget(Button.builder(Component.literal("EQ"), (b) -> {
-                    equipToNextEmptySlot(finalId);
-                }).bounds(x + 150, slotY + 1, 22, 18).build());
+                g.fill(x + 150, slotY + 1, x + 172, slotY + 19, 0x6600AAFF);
+                g.drawCenteredString(this.font, "EQ", x + 161, slotY + 6, 0xFFFFFF);
             } else {
                 g.drawString(this.font, "§a✔", x + 155, slotY + 6, 0xFFFFFF);
             }
@@ -200,6 +171,36 @@ public class StatusScreen extends Screen {
                 g.drawString(this.font, "§8" + (slotIdx + 1), slotX + 12, slotY_Pos + 10, 0xFFFFFF);
             }
         }
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (currentTab.equals("SKILLS") && button == 0) {
+            int x = (this.width - WINDOW_WIDTH) / 2;
+            int y = (this.height - WINDOW_HEIGHT) / 2;
+
+            // 1. CHECK "EQ" BUTTON CLICKS
+            List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
+            int listY = y + 35;
+            for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 4); i++) {
+                int rowY = listY + (i - skillScrollOffset) * 22;
+                if (mouseX >= x + 150 && mouseX <= x + 172 && mouseY >= rowY + 1 && mouseY <= rowY + 19) {
+                    equipToNextEmptySlot(skills.get(i));
+                    return true;
+                }
+            }
+
+            // 2. CHECK "CLR" (Equipped Slots) CLICKS
+            for (int slot = 0; slot < 5; slot++) {
+                int sx = x + 15 + (slot * 34);
+                int sy = y + 145;
+                if (mouseX >= sx && mouseX <= sx + 30 && mouseY >= sy && mouseY <= sy + 30) {
+                    Messages.sendToServer(new PacketEquipSkill(slot, 0));
+                    return true;
+                }
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     private void equipToNextEmptySlot(int skillId) {

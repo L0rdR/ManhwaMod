@@ -281,10 +281,15 @@ public class AwakenedStatusScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if (currentTab.equals("SKILLS")) {
+        // FIXED: Changed currentTab.equals("SKILLS") to showSkills
+        if (showSkills) {
             List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
-            if (delta < 0 && skillScrollOffset + 4 < skills.size()) skillScrollOffset++;
-            if (delta > 0 && skillScrollOffset > 0) skillScrollOffset--;
+            if (delta < 0 && skillScrollOffset + 4 < skills.size()) {
+                skillScrollOffset++;
+            }
+            if (delta > 0 && skillScrollOffset > 0) {
+                skillScrollOffset--;
+            }
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, delta);
