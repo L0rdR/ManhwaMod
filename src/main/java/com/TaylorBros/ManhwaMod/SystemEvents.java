@@ -258,33 +258,27 @@ public class SystemEvents {
 
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        // 1. Use event.player (not getEntity) for Forge compatibility
         if (event.side.isServer() && event.phase == TickEvent.Phase.END) {
             ServerPlayer player = (ServerPlayer) event.player;
-            if (player.getPersistentData().getBoolean("manhwamod.is_system_player") && player.isSprinting()) {
-                DailyQuestData.addDistance(player, 0.5);
-            }
 
-            if (player.tickCount % 20 == 0) {
-                int manaStat = SystemData.getMana(player);
-                int maxMana = 20 + (manaStat * 5);
-                int currentMana = player.getPersistentData().getInt("manhwamod.current_mana");
-                int regenAmount = 5 + (maxMana / 20);
+            // 2. Access the stat (Max) and resource (Current) from SystemData
+            int manaStat = SystemData.getMana(player);
+            int currentMana = SystemData.getCurrentMana(player);
 
-                if (currentMana < maxMana) {
-                    player.getPersistentData().putInt("manhwamod.current_mana", Math.min(currentMana + regenAmount, maxMana));
-                    SystemData.sync(player);
-                }
+            // 3. Business Logic: Calculate Absolute Max (Base 100 + 10 per point)
+            // If stat is 10, absoluteMax is 200. If stat is 0, it's 100.
+            int absoluteMax = 100 + (manaStat * 10);
+
+            // 4. THE SAFETY LOCK: Snap-back if overflowed, regen if under
+            if (currentMana > absoluteMax) {
+                // If the bar is 200 but the max is 100 (after wipe), force it back
+                SystemData.saveCurrentMana(player, absoluteMax);
+            } else if (currentMana < absoluteMax) {
+                // Math.min prevents the '+1' from ever crossing the limit
+                int nextMana = Math.min(currentMana + 1, absoluteMax);
+                SystemData.saveCurrentMana(player, nextMana);
             }
         }
-    }
-    public static void regenerateMana(ServerPlayer player) {
-        int maxMana = SystemData.getMana(player);
-        int current = SystemData.getCurrentMana(player);
-
-        if (current < maxMana) {
-            // Math.min ensures the new value never "overflows" the cap
-            SystemData.saveCurrentMana(player, Math.min(current + 1, maxMana));
-}
-        SystemData.sync(player);
     }
 }
