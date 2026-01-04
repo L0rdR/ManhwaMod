@@ -8,6 +8,7 @@ import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
+import net.minecraft.network.chat.Component;
 
 public class KeyInputHandler {
     public static final String KEY_CATEGORY_MANHWA = "key.category.manhwamod.titles";
@@ -47,27 +48,22 @@ public class KeyInputHandler {
             var player = Minecraft.getInstance().player;
             if (player == null) return;
 
-            // 1. Establish the "Tiered Access" checks from SystemData
             boolean isAwakened = SystemData.isAwakened(player);
             boolean isPlayer = SystemData.isSystemPlayer(player);
 
             if (STATUS_KEY.consumeClick()) {
-                boolean isPlayer = SystemData.isSystemPlayer(player);
-                boolean isAwakened = SystemData.isAwakened(player);
-
                 if (isPlayer) {
-                    // Only "Players" get the full System Menu (Stats, Skills, Quests)
+                    // "Players" (System Users) see the full Blue Status Window
                     Minecraft.getInstance().setScreen(new StatusScreen());
                 } else if (isAwakened) {
-                    // Awakened Non-Players get the basic Stat Plate
+                    // Awakened non-players see the basic Stat Plate
                     Minecraft.getInstance().setScreen(new AwakenedStatusScreen());
                 } else {
-                    // Civilians (Non-players) get NOTHING.
+                    // Civilians see a "Locked" message
                     player.displayClientMessage(Component.literal("§cThe System is not available to you."), true);
                 }
             }
 
-            // 2. Only allow skills/dash if awakened
             if (isAwakened) {
                 if (SKILL_1.consumeClick()) Messages.sendToServer(new PacketCastSkill(1));
                 if (SKILL_2.consumeClick()) Messages.sendToServer(new PacketCastSkill(2));
@@ -75,12 +71,7 @@ public class KeyInputHandler {
                 if (SKILL_4.consumeClick()) Messages.sendToServer(new PacketCastSkill(4));
                 if (SKILL_5.consumeClick()) Messages.sendToServer(new PacketCastSkill(5));
                 if (DASH_KEY.consumeClick()) SystemEvents.executeDash(player);
-
-                // Only allow opening the separate Quest Screen if they are a 'Player'
-                if (QUEST_KEY.consumeClick() && isPlayer) {
-                    Minecraft.getInstance().setScreen(new SystemQuestScreen());
                 }
             }
         }
     }
-}

@@ -4,6 +4,8 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import java.util.List;
+import java.util.ArrayList;
 
 public class AwakenedStatusScreen extends Screen {
     private static final int WINDOW_WIDTH = 190;

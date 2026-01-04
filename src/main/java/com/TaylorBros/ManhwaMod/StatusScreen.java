@@ -4,13 +4,15 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import java.util.List;
+import java.util.ArrayList;
 
 public class StatusScreen extends Screen {
     private static final int WINDOW_WIDTH = 190;
     private static final int WINDOW_HEIGHT = 210;
     private int multiplier = 1;
     private String currentTab = "STATS"; // Possible: STATS, SKILLS, QUESTS
-    private int skillScrollOffset = 0 ;;
+    private int skillScrollOffset = 0 ;
 
     protected StatusScreen() { super(Component.literal("System Status")); }
 
@@ -98,11 +100,18 @@ public class StatusScreen extends Screen {
         List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
 
         int slotY = y + 40;
-        // Use the offset to decide which skills to show
+        // Render only 6 skills based on the scroll position
         for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 6); i++) {
             int skillId = skills.get(i);
+
+            // PULL THE RECIPE FROM THE NBT TAG SYSTEM
+            String recipe = this.minecraft.player.getPersistentData().getString("manhwamod.skill_recipe_" + skillId);
+
+            // USE YOUR ENGINE TO FORMAT THE NAME (e.g., "FIRE BEAM")
+            String displayName = SkillEngine.getSkillName(recipe);
+
             g.fill(x + 15, slotY, x + 175, slotY + 20, 0x44FFFFFF);
-            g.drawString(this.font, "§eSkill ID: " + skillId, x + 20, slotY + 6, 0xFFFFFF);
+            g.drawString(this.font, "§e" + displayName, x + 20, slotY + 6, 0xFFFFFF);
             slotY += 25;
         }
 
@@ -118,6 +127,7 @@ public class StatusScreen extends Screen {
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (currentTab.equals("SKILLS")) {
             List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
+            // Scroll down (delta < 0) or up (delta > 0)
             if (delta < 0 && skillScrollOffset + 6 < skills.size()) skillScrollOffset++;
             if (delta > 0 && skillScrollOffset > 0) skillScrollOffset--;
             return true;
