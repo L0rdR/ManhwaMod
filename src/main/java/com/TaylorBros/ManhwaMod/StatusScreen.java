@@ -101,23 +101,14 @@ public class StatusScreen extends Screen {
 
         int slotY = y + 40;
         int itemsToRender = 5; // Reduced from 6 to give more breathing room
-        int spacing = 28;      // Increased from 25 to prevent overlapping
-
-        // Render using the scroll offset
-        for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + itemsToRender); i++) {
+        int spacing = 28;
+        for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 5); i++) {
             int skillId = skills.get(i);
-
-            // Pull the recipe and format the name using your engine
             String recipe = this.minecraft.player.getPersistentData().getString("manhwamod.skill_recipe_" + skillId);
             String displayName = SkillEngine.getSkillName(recipe);
 
-            // Draw the background slot
             g.fill(x + 15, slotY, x + 175, slotY + 22, 0x44FFFFFF);
-
-            // Draw the name - ensured to be on one line
             g.drawString(this.font, "§e" + displayName, x + 20, slotY + 7, 0xFFFFFF);
-
-            // Increment Y with enough space for the next box
             slotY += spacing;
         }
 
@@ -149,8 +140,20 @@ public class StatusScreen extends Screen {
         g.drawString(this.font, "§f- Pushups: §70/100", x + 15, y + 40, 0xFFFFFF);
     }
 
-    private void drawStat(GuiGraphics g, String label, int val, String color, int x, int y) {
-        g.drawString(this.font, "§f" + label, x, y, 0xFFFFFF);
-        g.drawString(this.font, color + val, x + 85, y, 0xFFFFFF);
-    }
+private void drawStat(GuiGraphics g, String label, int val, String color, int x, int y) {
+    g.drawString(this.font, "§f" + label, x, y, 0xFFFFFF);
+    g.drawString(this.font, color + val, x + 85, y, 0xFFFFFF);
 }
+
+// ENSURE THIS METHOD IS INSIDE THE CLASS BRACKET
+@Override
+public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    if (currentTab.equals("SKILLS")) {
+        List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
+        // Scroll down (delta < 0) or up (delta > 0)
+        if (delta < 0 && skillScrollOffset + 5 < skills.size()) skillScrollOffset++;
+        if (delta > 0 && skillScrollOffset > 0) skillScrollOffset--;
+        return true;
+    }
+    return super.mouseScrolled(mouseX, mouseY, delta);
+} // <--- THIS IS THE FINAL CLASS BRACKET. NOTHING SHOULD BE BELOW THIS.
