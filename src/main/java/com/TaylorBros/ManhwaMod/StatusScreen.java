@@ -100,19 +100,32 @@ public class StatusScreen extends Screen {
         List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
 
         int slotY = y + 40;
-        // Render only 6 skills based on the scroll position
-        for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 6); i++) {
+        int itemsToRender = 5; // Reduced from 6 to give more breathing room
+        int spacing = 28;      // Increased from 25 to prevent overlapping
+
+        // Render using the scroll offset
+        for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + itemsToRender); i++) {
             int skillId = skills.get(i);
 
+            // Pull the recipe and format the name using your engine
             String recipe = this.minecraft.player.getPersistentData().getString("manhwamod.skill_recipe_" + skillId);
             String displayName = SkillEngine.getSkillName(recipe);
-            g.drawString(this.font, "§e" + displayName, x + 20, slotY + 6, 0xFFFFFF);
+
+            // Draw the background slot
+            g.fill(x + 15, slotY, x + 175, slotY + 22, 0x44FFFFFF);
+
+            // Draw the name - ensured to be on one line
+            g.drawString(this.font, "§e" + displayName, x + 20, slotY + 7, 0xFFFFFF);
+
+            // Increment Y with enough space for the next box
+            slotY += spacing;
         }
 
         if (skills.isEmpty()) {
             g.drawString(this.font, "§7No skills detected in bank.", x + 20, y + 50, 0xFFFFFF);
         } else {
-            g.drawString(this.font, "§8(Scroll to view more)", x + 60, y + WINDOW_HEIGHT - 40, 0x888888);
+            g.drawString(this.font, "§8(Scroll: " + (skillScrollOffset + 1) + "/" + Math.max(1, skills.size() - itemsToRender + 1) + ")", x + 50, y + WINDOW_HEIGHT - 40, 0x888888);
+        }
         }
     }
 
