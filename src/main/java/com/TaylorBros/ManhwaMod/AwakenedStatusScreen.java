@@ -15,6 +15,8 @@ public class AwakenedStatusScreen extends Screen {
     private int multiplier = 1;
     private boolean showSkills = false;
     private int skillScrollOffset = 0;
+    private String currentTab = "STATS";
+
 
     protected AwakenedStatusScreen() {
         super(Component.literal("Awakened Status"));
@@ -128,6 +130,7 @@ public class AwakenedStatusScreen extends Screen {
 
         super.render(g, mouseX, mouseY, pt);
     }
+
     private String clipText(String text, int maxWidth) {
         if (font.width(text) <= maxWidth) return text;
 
@@ -136,6 +139,7 @@ public class AwakenedStatusScreen extends Screen {
         }
         return text + "...";
     }
+
     // ==================================================
     // SKILLS TAB
     // ==================================================
@@ -273,5 +277,16 @@ public class AwakenedStatusScreen extends Screen {
             case "D" -> "§f";
             default -> "§7";
         };
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (currentTab.equals("SKILLS")) {
+            List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
+            if (delta < 0 && skillScrollOffset + 4 < skills.size()) skillScrollOffset++;
+            if (delta > 0 && skillScrollOffset > 0) skillScrollOffset--;
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, delta);
     }
 }
