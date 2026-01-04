@@ -34,25 +34,19 @@ public class PacketUpdateStats {
 
             int currentPoints = SystemData.getPoints(player);
             if (currentPoints >= amount) {
-                // Map the Stat Type to your NBT keys
-                String nbtKey = switch (statType) {
-                    case "MANA" -> SystemData.MANA; // "manhwamod.mana"
-                    case "STR" -> "manhwamod.strength";
-                    case "HP" -> "manhwamod.health";
-                    default -> "manhwamod." + statType.toLowerCase();
-                };
+                String nbtKey = statType.equals("MANA") ? SystemData.MANA : "manhwamod." + statType.toLowerCase();
+                if (statType.equals("HP")) nbtKey = "manhwamod.health";
 
                 int currentVal = player.getPersistentData().getInt(nbtKey);
-                int newVal = currentVal + amount;
+                // Business Logic: If they upgrade Mana, we increase the Max and the Current
+                int increase = (statType.equals("MANA")) ? amount * 10 : amount;                int newVal = currentVal + increase;
 
                 player.getPersistentData().putInt(nbtKey, newVal);
                 SystemData.savePoints(player, currentPoints - amount);
 
-                // Milestone logic for unique skills
                 if (statType.equals("MANA")) {
                     int oldMilestones = currentVal / 50;
                     int newMilestones = newVal / 50;
-
                     if (newMilestones > oldMilestones) {
                         for (int i = 0; i < (newMilestones - oldMilestones); i++) {
                             generateUniqueSkill(player);
@@ -67,30 +61,31 @@ public class PacketUpdateStats {
 
     private void generateUniqueSkill(ServerPlayer player) {
         String recipe = "";
+        String skillName = "";
         boolean isDuplicate = true;
 
-        // Loop until a unique Art is found
-        while (isDuplicate) {
+        // 1. Get current names to prevent visual duplicates
+        java.util.List<String> ownedNames = new java.util.ArrayList<>();
+        for (int id : SystemData.getUnlockedSkills(player)) {
+            String existing = player.getPersistentData().getString(SystemData.RECIPE_PREFIX + id);
+            ownedNames.add(SkillEngine.getSkillName(existing));
+        }
+
+        // 2. Roll until a unique NAME is found
+        int safety = 0;
+        while (isDuplicate && safety < 100) {
             SkillTags.Shape s = SkillTags.Shape.values()[player.getRandom().nextInt(SkillTags.Shape.values().length)];
             SkillTags.Element e = SkillTags.Element.values()[player.getRandom().nextInt(SkillTags.Element.values().length)];
             SkillTags.Modifier m = SkillTags.Modifier.values()[player.getRandom().nextInt(SkillTags.Modifier.values().length)];
             recipe = s.name() + ":" + e.name() + ":" + m.name();
+            skillName = SkillEngine.getSkillName(recipe);
 
-            isDuplicate = false;
-            // Check existing recipes in the bank
-            for (int id : SystemData.getUnlockedSkills(player)) {
-                if (player.getPersistentData().getString(SystemData.RECIPE_PREFIX + id).equals(recipe)) {
-                    isDuplicate = true;
-                    break;
-                }
-            }
+            if (!ownedNames.contains(skillName)) isDuplicate = false;
+            safety++;
         }
 
-        int skillId = player.getRandom().nextInt(10000);
+        int skillId = player.getRandom().nextInt(100000);
         SystemData.unlockSkill(player, skillId, recipe, 25);
-
-        // Use SkillEngine to get the name for the notification
-        String skillName = SkillEngine.getSkillName(recipe);
         player.displayClientMessage(Component.literal("§b§l[SYSTEM] §fNew Art Learned: §e" + skillName), true);
     }
 }

@@ -40,7 +40,7 @@ public class SystemEvents {
                 player.getPersistentData().putInt("manhwamod.strength", 10);
                 player.getPersistentData().putInt("manhwamod.health_stat", 10);
                 player.getPersistentData().putInt("manhwamod.mana", 10);
-                player.getPersistentData().putInt("manhwamod.speed", 10);
+                player.getPersistentData().putInt("manhwamod.current_mana", 10);                player.getPersistentData().putInt("manhwamod.speed", 10);
                 player.getPersistentData().putInt("manhwamod.defense", 10);
 
                 player.getPersistentData().putBoolean("manhwamod.awakened", false);
@@ -258,26 +258,20 @@ public class SystemEvents {
 
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
-        // 1. Use event.player (not getEntity) for Forge compatibility
         if (event.side.isServer() && event.phase == TickEvent.Phase.END) {
             ServerPlayer player = (ServerPlayer) event.player;
 
-            // 2. Access the stat (Max) and resource (Current) from SystemData
-            int manaStat = SystemData.getMana(player);
-            int currentMana = SystemData.getCurrentMana(player);
+            // Get the current stat and resource
+            int maxMana = SystemData.getMana(player);
+            int current = SystemData.getCurrentMana(player);
 
-            // 3. Business Logic: Calculate Absolute Max (Base 100 + 10 per point)
-            // If stat is 10, absoluteMax is 200. If stat is 0, it's 100.
-            int absoluteMax = 100 + (manaStat * 10);
-
-            // 4. THE SAFETY LOCK: Snap-back if overflowed, regen if under
-            if (currentMana > absoluteMax) {
-                // If the bar is 200 but the max is 100 (after wipe), force it back
-                SystemData.saveCurrentMana(player, absoluteMax);
-            } else if (currentMana < absoluteMax) {
-                // Math.min prevents the '+1' from ever crossing the limit
-                int nextMana = Math.min(currentMana + 1, absoluteMax);
-                SystemData.saveCurrentMana(player, nextMana);
+            // BUSINESS LOGIC: If the bar is higher than the stat, snap it down.
+            // This fixes the "200/10" by forcing the bar to respect the "10".
+            if (current > maxMana) {
+                SystemData.saveCurrentMana(player, maxMana);
+            } else if (current < maxMana) {
+                // Regen up to the stat value
+                SystemData.saveCurrentMana(player, Math.min(current + 1, maxMana));
             }
         }
     }
