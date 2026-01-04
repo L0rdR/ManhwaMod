@@ -36,18 +36,32 @@ public class SystemEvents {
         if (event.side.isServer() && event.phase == TickEvent.Phase.END) {
             ServerPlayer player = (ServerPlayer) event.player;
 
-            // BUSINESS LOGIC: 1 Stat Point = 10 Max Mana
+            // 1. Get Core Data
             int manaStat = SystemData.getMana(player);
             int maxCap = manaStat * 10;
-
             int currentMana = SystemData.getCurrentMana(player);
 
+            // 2. Only regenerate if under the cap
             if (currentMana < maxCap) {
-                SystemData.saveCurrentMana(player, currentMana + 1);
-            }
-            // HARD CAP: If it tries to go past 10x the stat, force it back down.
-            else if (currentMana > maxCap) {
+                // SCALING REGEN LOGIC: 0.05 base + 0.005 per stat point
+                double regenPerTick = 0.05 + (manaStat / 200.0);
+
+                // Get the partial mana left over from the last tick
+                double buffer = player.getPersistentData().getDouble("manhwamod.mana_regen_buffer");
+                double totalAddition = regenPerTick + buffer;
+
+                int toAdd = (int) totalAddition; // The whole number to add this tick
+                double newBuffer = totalAddition - toAdd; // Save the decimal for the next tick
+
+                if (toAdd > 0) {
+                    SystemData.saveCurrentMana(player, Math.min(maxCap, currentMana + toAdd));
+                }
+                player.getPersistentData().putDouble("manhwamod.mana_regen_buffer", newBuffer);
+
+            } else if (currentMana > maxCap) {
+                // HARD CAP SAFETY: Snap back to max if overflow occurs
                 SystemData.saveCurrentMana(player, maxCap);
+                player.getPersistentData().putDouble("manhwamod.mana_regen_buffer", 0.0);
             }
         }
     }
