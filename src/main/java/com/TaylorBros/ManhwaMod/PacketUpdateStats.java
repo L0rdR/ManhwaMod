@@ -77,13 +77,11 @@ public class PacketUpdateStats {
                             // 5. NOTIFY THE PLAYER
                             player.displayClientMessage(Component.literal("§b§l[SYSTEM] §fNew Art Learned: §e" + skillName), true);
                         }
-                        // SYNC after all milestones are processed
-                        SystemData.sync(player);
                     }
-                    return true;
+                    SystemData.sync(player);
                 }
             }
-        });
+        }); // FIXED: Closes enqueueWork
         return true;
-    }
-}
+    } // FIXED: Closes handle
+} // FIXED: Closes class
