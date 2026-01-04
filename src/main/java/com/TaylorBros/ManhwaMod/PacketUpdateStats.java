@@ -5,6 +5,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 import net.minecraft.network.chat.Component;
+import java.util.List;
 
 public class PacketUpdateStats {
     private final int amount;
@@ -58,27 +59,34 @@ public class PacketUpdateStats {
 
                     if (newMilestones > oldMilestones) {
                         for (int i = 0; i < (newMilestones - oldMilestones); i++) {
-                            // 1. GENERATE RANDOM TAGS FROM YOUR ENUMS
-                            SkillTags.Shape shape = SkillTags.Shape.values()[player.getRandom().nextInt(SkillTags.Shape.values().length)];
-                            SkillTags.Element element = SkillTags.Element.values()[player.getRandom().nextInt(SkillTags.Element.values().length)];
-                            SkillTags.Modifier modifier = SkillTags.Modifier.values()[player.getRandom().nextInt(SkillTags.Modifier.values().length)];
+                            String recipe = "";
+                            boolean isDuplicate = true;
 
-                            // 2. CREATE THE RECIPE STRING (Shape:Element:Modifier)
-                            String recipe = shape.name() + ":" + element.name() + ":" + modifier.name();
+                            // UNIQUE CHECK: Keep rolling until the recipe is brand new
+                            while (isDuplicate) {
+                                SkillTags.Shape s = SkillTags.Shape.values()[player.getRandom().nextInt(SkillTags.Shape.values().length)];
+                                SkillTags.Element e = SkillTags.Element.values()[player.getRandom().nextInt(SkillTags.Element.values().length)];
+                                SkillTags.Modifier m = SkillTags.Modifier.values()[player.getRandom().nextInt(SkillTags.Modifier.values().length)];
+                                recipe = s.name() + ":" + e.name() + ":" + m.name();
 
-                            // 3. GENERATE A FORMATTED NAME USING YOUR ENGINE
-                            String skillName = SkillEngine.getSkillName(recipe);
+                                isDuplicate = false;
+                                // Use your existing method to get all currently owned IDs
+                                java.util.List<Integer> ownedIds = SystemData.getUnlockedSkills(player);
+                                for (int id : ownedIds) {
+                                    // Check if the recipe for this ID matches our new roll
+                                    String existing = player.getPersistentData().getString(SystemData.RECIPE_PREFIX + id);
+                                    if (existing.equals(recipe)) {
+                                        isDuplicate = true;
+                                        break;
+                                    }
+                                }
+                            }
+
                             int skillId = player.getRandom().nextInt(1000);
-                            int cost = 10 + player.getRandom().nextInt(40);
-
-                            // 4. UNLOCK USING YOUR TAG SYSTEM
-                            SystemData.unlockSkill(player, skillId, recipe, cost);
-
-                            // 5. NOTIFY THE PLAYER
-                            player.displayClientMessage(Component.literal("§b§l[SYSTEM] §fNew Art Learned: §e" + skillName), true);
+                            SystemData.unlockSkill(player, skillId, recipe, 25);
+                            player.displayClientMessage(Component.literal("§b§l[SYSTEM] §fUnique Art Learned: §e" + SkillEngine.getSkillName(recipe)), true);
                         }
-                    }
-                    SystemData.sync(player);
+                        SystemData.sync(player);
                 }
             }
         }); // FIXED: Closes enqueueWork

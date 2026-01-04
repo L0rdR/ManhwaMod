@@ -277,4 +277,13 @@ public class SystemEvents {
             }
         }
     }
+    public static void regenerateMana(ServerPlayer player) {
+        int maxMana = SystemData.getMana(player);
+        int current = SystemData.getCurrentMana(player);
+
+        if (current < maxMana) {
+            // Math.min ensures the new value never "overflows" the cap
+            SystemData.saveCurrentMana(player, Math.min(current + 1, maxMana));
+}
+    }
 }

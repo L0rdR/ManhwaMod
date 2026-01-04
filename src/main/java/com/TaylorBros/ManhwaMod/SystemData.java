@@ -26,6 +26,7 @@ public class SystemData {
     public static int getMana(Player player) { return player.getPersistentData().getInt(MANA); }
     public static int getCurrentMana(Player player) { return player.getPersistentData().getInt(CURRENT_MANA); }
 
+
     public static int getStrength(Player player) { return player.getPersistentData().getInt("manhwamod.strength"); }
     public static int getHealthStat(Player player) { return player.getPersistentData().getInt("manhwamod.health"); }
     public static int getDefense(Player player) { return player.getPersistentData().getInt("manhwamod.defense"); }
