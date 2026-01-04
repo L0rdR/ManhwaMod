@@ -76,12 +76,10 @@ public class PacketUpdateStats {
                             // 5. NOTIFY THE PLAYER
                             player.displayClientMessage(net.minecraft.network.chat.Component.literal("§b§l[SYSTEM] §fNew Art Learned: §e" + skillName), true);
                         }
-
                         SystemData.sync(player);
                     }
-                    return true;
                 }
-            }
+            });
+            return true;
         }
     }
-}
