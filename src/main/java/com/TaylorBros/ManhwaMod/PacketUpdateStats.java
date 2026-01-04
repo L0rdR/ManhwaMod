@@ -6,6 +6,7 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 import net.minecraft.network.chat.Component;
 import java.util.List;
+import java.util.ArrayList;
 
 public class PacketUpdateStats {
     private final int amount;
@@ -35,15 +36,20 @@ public class PacketUpdateStats {
             int currentPoints = SystemData.getPoints(player);
             if (currentPoints >= amount) {
                 String nbtKey = statType.equals("MANA") ? SystemData.MANA : "manhwamod." + statType.toLowerCase();
-                if (statType.equals("HP")) nbtKey = "manhwamod.health";
+                // Map HP explicitly if needed
+                if (statType.equals("HP")) nbtKey = "manhwamod.health_stat";
 
                 int currentVal = player.getPersistentData().getInt(nbtKey);
-                // Business Logic: If they upgrade Mana, we increase the Max and the Current
-                int increase = (statType.equals("MANA")) ? amount * 10 : amount;                int newVal = currentVal + increase;
+
+                // SCALING LOGIC: 1 Point spent = +10 Mana Stat.
+                // 10 Points spent = +100 Mana Stat.
+
+                int newVal = currentVal + amount;
 
                 player.getPersistentData().putInt(nbtKey, newVal);
                 SystemData.savePoints(player, currentPoints - amount);
 
+                // MILESTONE LOGIC: Every 50 Mana Stat = 1 Random Skill
                 if (statType.equals("MANA")) {
                     int oldMilestones = currentVal / 50;
                     int newMilestones = newVal / 50;
@@ -64,14 +70,14 @@ public class PacketUpdateStats {
         String skillName = "";
         boolean isDuplicate = true;
 
-        // 1. Get current names to prevent visual duplicates
-        java.util.List<String> ownedNames = new java.util.ArrayList<>();
+        // 1. Get List of Owned Skill Names (e.g. "Fire Blast")
+        List<String> ownedNames = new ArrayList<>();
         for (int id : SystemData.getUnlockedSkills(player)) {
             String existing = player.getPersistentData().getString(SystemData.RECIPE_PREFIX + id);
             ownedNames.add(SkillEngine.getSkillName(existing));
         }
 
-        // 2. Roll until a unique NAME is found
+        // 2. Roll until we find a name we DON'T have
         int safety = 0;
         while (isDuplicate && safety < 100) {
             SkillTags.Shape s = SkillTags.Shape.values()[player.getRandom().nextInt(SkillTags.Shape.values().length)];

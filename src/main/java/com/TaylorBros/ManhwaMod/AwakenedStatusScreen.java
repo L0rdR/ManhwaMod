@@ -28,7 +28,7 @@ public class AwakenedStatusScreen extends Screen {
         }).bounds(x + 10, y + WINDOW_HEIGHT - 25, 80, 18).build());
 
         if (!showSkills) {
-            // Multiplier button for stat allocation
+            // Multiplier button
             this.addRenderableWidget(Button.builder(Component.literal("x" + multiplier), (button) -> {
                 multiplier = (multiplier == 1) ? 10 : (multiplier == 10) ? 100 : 1;
                 button.setMessage(Component.literal("x" + multiplier));
@@ -55,7 +55,6 @@ public class AwakenedStatusScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // FIX: Renders the default dirt/dark background to prevent pink/black textures
         this.renderBackground(guiGraphics);
 
         int x = (this.width - WINDOW_WIDTH) / 2;
@@ -75,21 +74,46 @@ public class AwakenedStatusScreen extends Screen {
     }
 
     private void renderStatsTab(GuiGraphics g, int x, int y) {
-        g.drawString(this.font, "§b§lAWAKENED - " + this.minecraft.player.getName().getString().toUpperCase(), x + 12, y + 10, 0xFFFFFF);
+        g.drawString(this.font, "§b§lSYSTEM - " +  this.minecraft.player.getName().getString().toUpperCase(), x + 12, y + 10, 0xFFFFFF);
 
+        // Get live data from the player's NBT
         int pts = SystemData.getPoints(this.minecraft.player);
+        int currentMana = SystemData.getCurrentMana(this.minecraft.player);
+        int maxMana = SystemData.getMana(this.minecraft.player); // The Stat itself is the Max (e.g., 200)
+
         g.drawString(this.font, "§fAvailable Points: §e" + pts, x + 15, y + 65, 0xFFFFFF);
 
+        // Render standard stats
         drawStat(g, "Strength:", SystemData.getStrength(this.minecraft.player), "§c", x + 15, y + 80);
         drawStat(g, "Health:", SystemData.getHealthStat(this.minecraft.player), "§a", x + 15, y + 100);
         drawStat(g, "Defense:", SystemData.getDefense(this.minecraft.player), "§7", x + 15, y + 120);
         drawStat(g, "Speed:", SystemData.getSpeed(this.minecraft.player), "§f", x + 15, y + 140);
-        drawStat(g, "Mana:", SystemData.getMana(this.minecraft.player), "§d", x + 15, y + 160);
+
+        // THE MANA DISPLAY: Shows "150 / 200"
+        g.drawString(this.font, "§fMana:", x + 15, y + 160, 0xFFFFFF);
     }
 
     private void renderSkillsTab(GuiGraphics g, int x, int y) {
-        g.drawString(this.font, "§b§lSKILLS", x + 12, y + 10, 0xFFFFFF);
-        // Logic to list unlocked skills from SystemData.getUnlockedSkills
+        g.drawString(this.font, "§b§lUNLOCKED ARTS", x + 12, y + 10, 0xFFFFFF);
+
+        List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
+        int startY = y + 40;
+
+        if (skills.isEmpty()) {
+            g.drawString(this.font, "§7No Arts Learned.", x + 20, startY, 0xFFFFFF);
+        } else {
+            // Loop through the list and display names
+            for (int i = 0; i < skills.size(); i++) {
+                if (i > 8) break; // Prevent overflow off screen
+
+                int id = skills.get(i);
+                // We access the raw NBT directly here for client-side rendering
+                String recipe = this.minecraft.player.getPersistentData().getString("manhwamod.skill_recipe_" + id);
+                String name = SkillEngine.getSkillName(recipe);
+
+                g.drawString(this.font, "§e- " + name, x + 15, startY + (i * 12), 0xFFFFFF);
+            }
+        }
     }
 
     private void drawStat(GuiGraphics g, String label, int val, String color, int x, int y) {
