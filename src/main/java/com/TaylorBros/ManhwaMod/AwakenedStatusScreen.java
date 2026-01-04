@@ -133,7 +133,7 @@ public class AwakenedStatusScreen extends Screen {
         List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
         int slotY = y + 35;
 
-        // 1. TOP SECTION: Unlocked Skills List
+        // 1. TOP SECTION: Unlocked Skills List (Left as is)
         for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 4); i++) {
             int skillId = skills.get(i);
             String recipe = this.minecraft.player.getPersistentData().getString(SystemData.RECIPE_PREFIX + skillId);
@@ -155,8 +155,6 @@ public class AwakenedStatusScreen extends Screen {
 
             if (!isEquipped) {
                 int finalId = skillId;
-                // Buttons here are okay because they are manageable,
-                // but ideally these should be moved to init() for peak performance.
                 this.addRenderableWidget(Button.builder(Component.literal("EQ"), (b) -> {
                     equipToNextEmptySlot(finalId);
                 }).bounds(x + 150, slotY + 1, 22, 18).build());
@@ -166,7 +164,7 @@ public class AwakenedStatusScreen extends Screen {
             slotY += 22;
         }
 
-        // 2. BOTTOM SECTION: 5 Equipped Slots (Visuals Only)
+        // 2. BOTTOM SECTION: 5 Equipped Slots (FIXED: Removed Button widgets)
         g.drawString(this.font, "§bEquipped Arts:", x + 15, y + 130, 0xFFFFFF);
         for (int slotIdx = 0; slotIdx < 5; slotIdx++) {
             int slotX = x + 15 + (slotIdx * 34);
@@ -188,9 +186,10 @@ public class AwakenedStatusScreen extends Screen {
                 g.drawCenteredString(this.font, skillName, 0, -4, 0xFFFFFF);
                 g.pose().popPose();
 
-                // HOVER FEEDBACK: This makes the slot turn red and say "CLR" when hovering
+                // VISUAL ONLY: Show Red Highlight + CLR text when hovering
+                // This does NOT use a Button widget, so it won't block clicks.
                 if (mouseX >= slotX && mouseX <= slotX + 30 && mouseY >= slotY_Pos && mouseY <= slotY_Pos + 30) {
-                    g.fill(slotX, slotY_Pos, slotX + 30, slotY_Pos + 30, 0x66FF0000); // Transparent red
+                    g.fill(slotX, slotY_Pos, slotX + 30, slotY_Pos + 30, 0x66FF0000);
                     g.drawCenteredString(this.font, "CLR", slotX + 15, slotY_Pos + 10, 0xFFFFFF);
                 }
             } else {
