@@ -35,21 +35,20 @@ public class PacketUpdateStats {
 
             int currentPoints = SystemData.getPoints(player);
             if (currentPoints >= amount) {
+                // Determine the correct NBT Key
                 String nbtKey = statType.equals("MANA") ? SystemData.MANA : "manhwamod." + statType.toLowerCase();
-                // Map HP explicitly if needed
                 if (statType.equals("HP")) nbtKey = "manhwamod.health_stat";
 
                 int currentVal = player.getPersistentData().getInt(nbtKey);
 
-                // SCALING LOGIC: 1 Point spent = +10 Mana Stat.
-                // 10 Points spent = +100 Mana Stat.
-
+                // PERFECT SCALING: 1 Point spent = +10 Mana Stat.
+                // If the screen multiplier is x10, this will spend 10 points and add 100 Stat.
                 int newVal = currentVal + amount;
 
                 player.getPersistentData().putInt(nbtKey, newVal);
                 SystemData.savePoints(player, currentPoints - amount);
 
-                // MILESTONE LOGIC: Every 50 Mana Stat = 1 Random Skill
+                // Milestone Logic: Every 50 Stat points = 1 New Art
                 if (statType.equals("MANA")) {
                     int oldMilestones = currentVal / 50;
                     int newMilestones = newVal / 50;
@@ -70,14 +69,12 @@ public class PacketUpdateStats {
         String skillName = "";
         boolean isDuplicate = true;
 
-        // 1. Get List of Owned Skill Names (e.g. "Fire Blast")
         List<String> ownedNames = new ArrayList<>();
         for (int id : SystemData.getUnlockedSkills(player)) {
             String existing = player.getPersistentData().getString(SystemData.RECIPE_PREFIX + id);
             ownedNames.add(SkillEngine.getSkillName(existing));
         }
 
-        // 2. Roll until we find a name we DON'T have
         int safety = 0;
         while (isDuplicate && safety < 100) {
             SkillTags.Shape s = SkillTags.Shape.values()[player.getRandom().nextInt(SkillTags.Shape.values().length)];
