@@ -19,7 +19,6 @@ public class AwakenedStatusScreen extends Screen {
         int x = (this.width - WINDOW_WIDTH) / 2;
         int y = (this.height - WINDOW_HEIGHT) / 2;
 
-        // Toggle button between Stats and Skills
         this.addRenderableWidget(Button.builder(Component.literal(showSkills ? "VIEW STATS" : "VIEW SKILLS"), (button) -> {
             showSkills = !showSkills;
             this.clearWidgets();
@@ -68,22 +67,32 @@ public class AwakenedStatusScreen extends Screen {
     }
 
     private void renderStatsTab(GuiGraphics g, int x, int y) {
+        // 1. Render Header and Name
         g.drawString(this.font, "§b§lAWAKENED - " + this.minecraft.player.getName().getString().toUpperCase(), x + 12, y + 10, 0xFFFFFF);
+
+        // 2. NEW: Render Level and Rank directly under the name
+        // Business logic: Rank is usually E, D, C, B, A, S
+        String playerRank = this.minecraft.player.getPersistentData().getString("manhwamod.rank");        int playerLevel = this.minecraft.player.getPersistentData().getInt("manhwamod.level");
+        g.drawString(this.font, "§fLevel: §b" + playerLevel, x + 15, y + 25, 0xFFFFFF);
+        g.drawString(this.font, "§fRank: §e§l" + playerRank, x + 15, y + 35, 0xFFFFFF);
+
+        // 3. Render Available Points
         int pts = SystemData.getPoints(this.minecraft.player);
-        int manaStat = SystemData.getMana(this.minecraft.player); // e.g., 20
-        int currentMana = SystemData.getCurrentMana(this.minecraft.player); // e.g., 200
         g.drawString(this.font, "§fAvailable Points: §e" + pts, x + 15, y + 65, 0xFFFFFF);
 
+        // 4. Render Core Stats
         drawStat(g, "Strength:", SystemData.getStrength(this.minecraft.player), "§c", x + 15, y + 80);
         drawStat(g, "Health:", SystemData.getHealthStat(this.minecraft.player), "§a", x + 15, y + 100);
         drawStat(g, "Defense:", SystemData.getDefense(this.minecraft.player), "§7", x + 15, y + 120);
         drawStat(g, "Speed:", SystemData.getSpeed(this.minecraft.player), "§f", x + 15, y + 140);
 
-        // PERFECT 1:1 STAT DISPLAY
+        // 5. Render Mana and Pool (with the fixed 10x capacity display)
+        int manaStat = SystemData.getMana(this.minecraft.player);
+        int currentMana = SystemData.getCurrentMana(this.minecraft.player);
+
         drawStat(g, "Mana:", manaStat, "§d", x + 15, y + 160);
-
+        g.drawString(this.font, "§8Pool: " + currentMana + " / " + (manaStat * 10), x + 25, y + 172, 0xFFFFFF);
     }
-
 
     private void renderSkillsTab(GuiGraphics g, int x, int y) {
         g.drawString(this.font, "§b§lUNLOCKED ARTS", x + 12, y + 10, 0xFFFFFF);

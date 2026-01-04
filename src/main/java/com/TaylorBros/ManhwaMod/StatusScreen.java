@@ -77,13 +77,24 @@ public class StatusScreen extends Screen {
 
     private void renderStatsTab(GuiGraphics g, int x, int y) {
         g.drawString(this.font, "§b§lSYSTEM: " + this.minecraft.player.getName().getString().toUpperCase(), x + 12, y + 10, 0xFFFFFF);
+
         int pts = SystemData.getPoints(this.minecraft.player);
+        int manaStat = SystemData.getMana(this.minecraft.player); // e.g., 10
+        int currentMana = SystemData.getCurrentMana(this.minecraft.player); // e.g., 100
+
         g.drawString(this.font, "§fAvailable Points: §e" + pts, x + 15, y + 65, 0xFFFFFF);
+
         drawStat(g, "Strength:", SystemData.getStrength(this.minecraft.player), "§c", x + 15, y + 80);
         drawStat(g, "Health:", SystemData.getHealthStat(this.minecraft.player), "§a", x + 15, y + 100);
         drawStat(g, "Defense:", SystemData.getDefense(this.minecraft.player), "§7", x + 15, y + 120);
         drawStat(g, "Speed:", SystemData.getSpeed(this.minecraft.player), "§f", x + 15, y + 140);
-        drawStat(g, "Mana:", SystemData.getMana(this.minecraft.player), "§d", x + 15, y + 160);
+
+        // DEFINITIVE BUSINESS LOGIC:
+        // Show the raw Stat (10) so the "+" buttons make sense
+        drawStat(g, "Mana:", manaStat, "§d", x + 15, y + 160);
+
+        // Show the calculated Pool (100 / 100) on the sub-line
+        g.drawString(this.font, "§8Pool: " + currentMana + " / " + (manaStat * 10), x + 25, y + 172, 0xFFFFFF);
     }
 
     private void renderSkillsTab(GuiGraphics g, int x, int y) {

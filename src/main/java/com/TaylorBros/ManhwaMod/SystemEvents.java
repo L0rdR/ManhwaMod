@@ -19,8 +19,8 @@ public class SystemEvents {
                 player.getPersistentData().putInt("manhwamod.strength", 10);
                 player.getPersistentData().putInt("manhwamod.health_stat", 10);
 
-                // Start with 100 Mana (10 points invested initially)
-                player.getPersistentData().putInt(SystemData.MANA, 100);
+                // FIX: Stat is 10, Current Pool is 100
+                player.getPersistentData().putInt(SystemData.MANA, 10);
                 player.getPersistentData().putInt(SystemData.CURRENT_MANA, 100);
 
                 player.getPersistentData().putInt("manhwamod.speed", 10);
@@ -37,15 +37,15 @@ public class SystemEvents {
             ServerPlayer player = (ServerPlayer) event.player;
 
             // BUSINESS LOGIC: 1 Stat Point = 10 Max Mana
-            int manaStat = SystemData.getMana(player); // This is 20
-            int maxCap = manaStat * 10;               // This makes the capacity 200
+            int manaStat = SystemData.getMana(player);
+            int maxCap = manaStat * 10;
 
             int currentMana = SystemData.getCurrentMana(player);
 
             if (currentMana < maxCap) {
                 SystemData.saveCurrentMana(player, currentMana + 1);
             }
-            // 5. THE SAFETY: If it overflows (like your current bug), snap it back to 100
+            // HARD CAP: If it tries to go past 10x the stat, force it back down.
             else if (currentMana > maxCap) {
                 SystemData.saveCurrentMana(player, maxCap);
             }

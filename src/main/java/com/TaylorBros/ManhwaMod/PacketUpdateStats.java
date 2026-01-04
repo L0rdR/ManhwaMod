@@ -35,20 +35,18 @@ public class PacketUpdateStats {
 
             int currentPoints = SystemData.getPoints(player);
             if (currentPoints >= amount) {
-                // Determine the correct NBT Key
                 String nbtKey = statType.equals("MANA") ? SystemData.MANA : "manhwamod." + statType.toLowerCase();
                 if (statType.equals("HP")) nbtKey = "manhwamod.health_stat";
 
                 int currentVal = player.getPersistentData().getInt(nbtKey);
 
-                // PERFECT SCALING: 1 Point spent = +10 Mana Stat.
-                // If the screen multiplier is x10, this will spend 10 points and add 100 Stat.
+                // FIX: 1 point spent = 1 point added to the STAT.
                 int newVal = currentVal + amount;
 
                 player.getPersistentData().putInt(nbtKey, newVal);
                 SystemData.savePoints(player, currentPoints - amount);
 
-                // Milestone Logic: Every 50 Stat points = 1 New Art
+                // Milestone Logic: Trigger every 5 Stat points (50 Pool)
                 if (statType.equals("MANA")) {
                     int oldMilestones = currentVal / 50;
                     int newMilestones = newVal / 50;
