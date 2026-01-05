@@ -17,14 +17,18 @@ public class StatusScreen extends Screen {
 
     @Override
     protected void init() {
+        super.init();
+
         if (this.minecraft.player != null && !SystemData.isSystemPlayer(this.minecraft.player)) {
             this.minecraft.setScreen(new AwakenedStatusScreen());
             return;
         }
 
+        // Standardized coordinates for the entire class
         int x = (this.width - WINDOW_WIDTH) / 2;
         int y = (this.height - WINDOW_HEIGHT) / 2;
 
+        // Navigation Buttons
         this.addRenderableWidget(Button.builder(Component.literal("STATS"), (button) -> { currentTab = "STATS"; this.rebuild(); })
                 .bounds(x + 10, y + WINDOW_HEIGHT - 25, 55, 18).build());
         this.addRenderableWidget(Button.builder(Component.literal("SKILLS"), (button) -> { currentTab = "SKILLS"; this.rebuild(); })
@@ -32,6 +36,7 @@ public class StatusScreen extends Screen {
         this.addRenderableWidget(Button.builder(Component.literal("QUESTS"), (button) -> { currentTab = "QUESTS"; this.rebuild(); })
                 .bounds(x + 124, y + WINDOW_HEIGHT - 25, 55, 18).build());
 
+        // Stats Tab Specific Buttons
         if (currentTab.equals("STATS")) {
             this.addRenderableWidget(Button.builder(Component.literal("x" + multiplier), (button) -> {
                 multiplier = (multiplier == 1) ? 10 : (multiplier == 10) ? 100 : 1;
@@ -39,12 +44,12 @@ public class StatusScreen extends Screen {
             }).bounds(x + 135, y + 10, 45, 20).build());
 
             int buttonX = x + 160;
-            int startY = y + 78;
-            addStatButton(buttonX, startY, "STR");
-            addStatButton(buttonX, startY + 20, "HP");
-            addStatButton(buttonX, startY + 40, "DEF");
-            addStatButton(buttonX, startY + 60, "SPD");
-            addStatButton(buttonX, startY + 80, "MANA");
+            int startStatY = y + 78;
+            addStatButton(buttonX, startStatY, "STR");
+            addStatButton(buttonX, startStatY + 20, "HP");
+            addStatButton(buttonX, startStatY + 40, "DEF");
+            addStatButton(buttonX, startStatY + 60, "SPD");
+            addStatButton(buttonX, startStatY + 80, "MANA");
         }
     }
 
@@ -70,7 +75,7 @@ public class StatusScreen extends Screen {
         switch (currentTab) {
             case "STATS" -> renderStatsTab(guiGraphics, x, y);
             case "SKILLS" -> renderSkillsTab(guiGraphics, x, y, mouseX, mouseY);
-            case "QUESTS" -> renderQuestTab(guiGraphics, x, y);
+            case "QUESTS" -> renderQuestsTab(guiGraphics, x, y); // Matches method name below
         }
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
@@ -111,7 +116,6 @@ public class StatusScreen extends Screen {
             default -> "§f";
         };
     }
-
 
     public void renderSkillsTab(GuiGraphics g, int x, int y, int mouseX, int mouseY) {
         g.drawString(this.font, "§b§lUNLOCKED ARTS", x + 12, y + 10, 0xFFFFFF);
@@ -179,7 +183,6 @@ public class StatusScreen extends Screen {
             int x = (this.width - WINDOW_WIDTH) / 2;
             int y = (this.height - WINDOW_HEIGHT) / 2;
 
-            // 1. CHECK "EQ" BUTTON CLICKS
             List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
             int listY = y + 35;
             for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 4); i++) {
@@ -190,7 +193,6 @@ public class StatusScreen extends Screen {
                 }
             }
 
-            // 2. CHECK "CLR" (Equipped Slots) CLICKS
             for (int slot = 0; slot < 5; slot++) {
                 int sx = x + 15 + (slot * 34);
                 int sy = y + 145;
@@ -214,9 +216,29 @@ public class StatusScreen extends Screen {
         }
     }
 
-    private void renderQuestTab(GuiGraphics g, int x, int y) {
-        g.drawString(this.font, "§b§lSYSTEM: DAILY QUEST", x + 12, y + 10, 0xFFFFFF);
-        g.drawString(this.font, "§f- Pushups: §70/100", x + 15, y + 40, 0xFFFFFF);
+    private void renderQuestsTab(GuiGraphics guiGraphics, int x, int y) {
+        var player = this.minecraft.player;
+        if (player == null) return;
+
+        // Pulling data from DailyQuestData
+        int kills = DailyQuestData.getKills(player);
+        int dist = (int) DailyQuestData.getDist(player);
+        boolean completed = DailyQuestData.isCompleted(player);
+
+        guiGraphics.drawString(this.font, "§lDAILY QUEST", x + 12, y + 10, 0xFFFFFF);
+
+        String killProgress = "Mobs Defeated: " + kills + " / " + DailyQuestData.getKillTarget(player);
+        int killColor = kills >= DailyQuestData.getKillTarget(player) ? 0x55FF55 : 0xAAAAAA;
+
+        String distProgress = "Running: " + dist + " / " + DailyQuestData.getDistTarget(player) + "m";
+        int distColor = dist >= DailyQuestData.getDistTarget(player) ? 0x55FF55 : 0xAAAAAA;
+
+        if (completed) {
+            guiGraphics.drawString(this.font, "§6§lQUEST COMPLETED", x + 12, y + 75, 0xFFAA00);
+            guiGraphics.drawString(this.font, "§e+3 Ability Points Rewarded", x + 12, y + 87, 0xFFFF55);
+        } else {
+            guiGraphics.drawString(this.font, "§fStatus: §bIn Progress...", x + 12, y + 75, 0xFFFFFF);
+        }
     }
 
     private void drawStat(GuiGraphics g, String label, int val, String color, int x, int y) {
