@@ -34,7 +34,7 @@ public class SkillEngine {
             case ICE -> ParticleTypes.SNOWFLAKE;
             case LIGHTNING -> ParticleTypes.ELECTRIC_SPARK;
             case VOID -> ParticleTypes.PORTAL;
-            case FORCE -> ParticleTypes.SOUL_FIRE_FLAME;
+            case FORCE -> ParticleTypes.SOUL_FIRE_FLAME; // Matches your Dictates
             default -> ParticleTypes.CRIT;
         };
 
@@ -172,7 +172,10 @@ public class SkillEngine {
     public static String getSkillName(String recipe) {
         if (recipe.isEmpty()) return "Unknown Skill";
         String[] parts = recipe.split(":");
-        return parts[1] + " " + parts[0];
+        // parts[0] = Shape, parts[1] = Element, parts[2] = Modifier
+        String modifier = parts[2].equals("NONE") ? "" : parts[2] + " ";
+        return "§l" + parts[1] + " " + modifier + parts[0];
+        // Result example: "FIRE EXPLODE CONE" or "ICE BEAM"
     }
 
     public static String getSkillDescription(String recipe) {
