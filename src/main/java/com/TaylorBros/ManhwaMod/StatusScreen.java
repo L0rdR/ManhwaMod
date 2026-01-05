@@ -237,7 +237,7 @@ public class StatusScreen extends Screen {
             guiGraphics.drawString(this.font, "§6§lQUEST COMPLETED", x + 12, y + 75, 0xFFAA00);
             guiGraphics.drawString(this.font, "§e+3 Ability Points Rewarded", x + 12, y + 87, 0xFFFF55);
         } else {
-            guiGraphics.drawString(this.font, "§fStatus: §bIn Progress...", x + 12, y + 75, 0xFFFFFF);
+            guiGraphics.drawString(this.font, "§fStatus: §bNo Quest Active", x + 12, y + 75, 0xFFFFFF);
         }
     }
 
