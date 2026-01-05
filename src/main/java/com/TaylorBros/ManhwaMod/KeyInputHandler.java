@@ -35,8 +35,8 @@ public class KeyInputHandler {
             event.register(SKILL_3);
             event.register(SKILL_4);
             event.register(SKILL_5);
-        }
-    }
+        } // End registerKeys
+    } // End ModBusEvents
 
     @Mod.EventBusSubscriber(modid = ManhwaMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
     public static class ForgeBusEvents {
@@ -64,7 +64,7 @@ public class KeyInputHandler {
                 if (SKILL_4.consumeClick()) Messages.sendToServer(new PacketCastSkill(3));
                 if (SKILL_5.consumeClick()) Messages.sendToServer(new PacketCastSkill(4));
                 if (DASH_KEY.consumeClick()) SystemEvents.executeDash(player);
-            }
-        }
-    }
-}
+            } // End isAwakened
+        } // End onKeyInput
+    } // End ForgeBusEvents
+} // End KeyInputHandler
