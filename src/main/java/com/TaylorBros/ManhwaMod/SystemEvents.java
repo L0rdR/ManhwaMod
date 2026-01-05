@@ -10,6 +10,22 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = "manhwamod")
 public class SystemEvents {
+    @SubscribeEvent
+    public static void onPlayerSave(PlayerEvent.SaveToFile event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            // Force the current mana into the persistent NBT before the game saves the file
+            int current = player.getPersistentData().getInt(SystemData.CURRENT_MANA);
+            player.getPersistentData().putInt(SystemData.CURRENT_MANA, current);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLoad(PlayerEvent.LoadFromFile event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            // This ensures the value is synced to the client the second it's loaded from disk
+            SystemData.sync(player);
+        }
+    }
 
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {

@@ -23,7 +23,6 @@ public class KeyInputHandler {
     public static final KeyMapping SKILL_4 = new KeyMapping("key.manhwamod.skill_4", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_4, KEY_CATEGORY_MANHWA);
     public static final KeyMapping SKILL_5 = new KeyMapping("key.manhwamod.skill_5", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_5, KEY_CATEGORY_MANHWA);
 
-    // This internal class handles the MOD bus (Registration)
     @Mod.EventBusSubscriber(modid = ManhwaMod.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
     public static class ModBusEvents {
         @SubscribeEvent
@@ -39,7 +38,6 @@ public class KeyInputHandler {
         }
     }
 
-    // This internal class handles the FORGE bus (Actual Gameplay Taps)
     @Mod.EventBusSubscriber(modid = ManhwaMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
     public static class ForgeBusEvents {
         @SubscribeEvent
@@ -53,27 +51,20 @@ public class KeyInputHandler {
 
             if (STATUS_KEY.consumeClick()) {
                 if (isPlayer) {
-                    // "Players" (System Users) see the full Blue Status Window
                     Minecraft.getInstance().setScreen(new StatusScreen());
-                } else if (isAwakened) {
-                    // Awakened non-players see the basic Stat Plate
-                    Minecraft.getInstance().setScreen(new AwakenedStatusScreen());
                 } else {
-                    // Civilians see a "Locked" message
                     player.displayClientMessage(Component.literal("§cThe System is not available to you."), true);
                 }
             }
 
             if (isAwakened) {
-                // Skills correspond to slots 0 through 4
                 if (SKILL_1.consumeClick()) Messages.sendToServer(new PacketCastSkill(0));
                 if (SKILL_2.consumeClick()) Messages.sendToServer(new PacketCastSkill(1));
                 if (SKILL_3.consumeClick()) Messages.sendToServer(new PacketCastSkill(2));
                 if (SKILL_4.consumeClick()) Messages.sendToServer(new PacketCastSkill(3));
                 if (SKILL_5.consumeClick()) Messages.sendToServer(new PacketCastSkill(4));
-
                 if (DASH_KEY.consumeClick()) SystemEvents.executeDash(player);
-                }
             }
         }
     }
+}
