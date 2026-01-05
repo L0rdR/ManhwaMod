@@ -35,6 +35,7 @@ public class SystemEvents {
     @SubscribeEvent
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            DailyQuestData.checkAndReset(player);
             // Ensure default stats exist for new players
             if (!player.getPersistentData().contains("manhwamod.points")) {
                 player.getPersistentData().putInt("manhwamod.points", 5);

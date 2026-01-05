@@ -67,6 +67,11 @@ public class SystemCommands {
                                     data.putInt(SystemData.MANA, 10);
                                     data.putInt(SystemData.POINTS, 0);
 
+                                    player.getPersistentData().remove("manhwamod.quest_date");
+                                    player.getPersistentData().remove("manhwamod.quest_kills");
+                                    player.getPersistentData().remove("manhwamod.quest_dist");
+                                    player.getPersistentData().remove("manhwamod.quest_done");
+
                                     SystemData.sync(player);
                                     player.sendSystemMessage(Component.literal("§c§l[SYSTEM] §fFull Profile Wipe Successful."));
                                     return 1;
@@ -105,10 +110,23 @@ public class SystemCommands {
                         .then(Commands.literal("become_player")
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
-                                    player.getPersistentData().putBoolean(SystemData.AWAKENED, true);
-                                    player.getPersistentData().putBoolean(SystemData.IS_SYSTEM, true);
+
+                                    // Set Status
+                                    player.getPersistentData().putBoolean("manhwamod.is_system_player", true);
+
+                                    // CRITICAL FIX: Clear old quest NBT so checkAndReset sees it as brand new
+                                    player.getPersistentData().remove("manhwamod.quest_date");
+                                    player.getPersistentData().remove("manhwamod.quest_kills");
+                                    player.getPersistentData().remove("manhwamod.quest_dist");
+                                    player.getPersistentData().remove("manhwamod.quest_done");
+
+                                    // Now trigger the fresh quest generation
+                                    DailyQuestData.checkAndReset(player);
+
+                                    // Sync everything to the client
                                     SystemData.sync(player);
-                                    player.sendSystemMessage(Component.literal("§b§l[ADMIN] §fStatus: 'Player'."));
+
+                                    player.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fWelcome, Player."));
                                     return 1;
                                 })
                         )

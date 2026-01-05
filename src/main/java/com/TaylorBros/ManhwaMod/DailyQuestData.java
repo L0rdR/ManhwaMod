@@ -26,11 +26,13 @@ public class DailyQuestData {
     public static void checkAndReset(Player player) {
         String today = LocalDate.now().toString();
         String lastDate = player.getPersistentData().getString(LAST_RESET);
-
-        // FIX: Define the missing 'isSystem' variable
         boolean isSystem = player.getPersistentData().getBoolean("manhwamod.is_system_player");
+        boolean isDone = player.getPersistentData().getBoolean(COMPLETED);
 
-        // Reset if it's a new day OR if the player is a System Player but has no date recorded (Wiped)
+        // RESET CONDITIONS:
+        // 1. It's a brand new day.
+        // 2. The player is a System Player but has NO quest date (Wiped).
+        // 3. The player is a System Player, is NOT completed, but has 0 kills/dist (Fresh Awakening).
         if (!today.equals(lastDate) || lastDate.isEmpty()) {
             player.getPersistentData().putString(LAST_RESET, today);
             player.getPersistentData().putInt(MOB_KILLS, 0);
@@ -39,11 +41,8 @@ public class DailyQuestData {
 
             if (isSystem) {
                 player.displayClientMessage(net.minecraft.network.chat.Component.literal("§b§l[SYSTEM] §fDaily Quest has arrived."), false);
-                // Inform the player of their current targets
-                player.displayClientMessage(net.minecraft.network.chat.Component.literal("§7Goal: " + getKillTarget(player) + " Kills | " + getDistTarget(player) + "m Run"), false);
             }
 
-            // Immediately sync the reset to the client so the UI updates
             if (player instanceof ServerPlayer serverPlayer) {
                 SystemData.sync(serverPlayer);
             }
