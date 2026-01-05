@@ -65,11 +65,13 @@ public class KeyInputHandler {
             }
 
             if (isAwakened) {
-                if (SKILL_1.consumeClick()) Messages.sendToServer(new PacketCastSkill(1));
-                if (SKILL_2.consumeClick()) Messages.sendToServer(new PacketCastSkill(2));
-                if (SKILL_3.consumeClick()) Messages.sendToServer(new PacketCastSkill(3));
-                if (SKILL_4.consumeClick()) Messages.sendToServer(new PacketCastSkill(4));
-                if (SKILL_5.consumeClick()) Messages.sendToServer(new PacketCastSkill(5));
+                // Skills correspond to slots 0 through 4
+                if (SKILL_1.consumeClick()) Messages.sendToServer(new PacketCastSkill(0));
+                if (SKILL_2.consumeClick()) Messages.sendToServer(new PacketCastSkill(1));
+                if (SKILL_3.consumeClick()) Messages.sendToServer(new PacketCastSkill(2));
+                if (SKILL_4.consumeClick()) Messages.sendToServer(new PacketCastSkill(3));
+                if (SKILL_5.consumeClick()) Messages.sendToServer(new PacketCastSkill(4));
+
                 if (DASH_KEY.consumeClick()) SystemEvents.executeDash(player);
                 }
             }
