@@ -171,11 +171,14 @@ public class SkillEngine {
 
     public static String getSkillName(String recipe) {
         if (recipe.isEmpty()) return "Unknown Skill";
-        String[] parts = recipe.split(":");
-        // parts[0] = Shape, parts[1] = Element, parts[2] = Modifier
-        String modifier = parts[2].equals("NONE") ? "" : parts[2] + " ";
-        return "§l" + parts[1] + " " + modifier + parts[0];
-        // Result example: "FIRE EXPLODE CONE" or "ICE BEAM"
+        String[] parts = recipe.split(":"); // Shape:Element:Modifier
+
+        String shape = parts[0];
+        String element = parts[1];
+        String modifier = parts[2].equals("NONE") ? "" : " " + parts[2];
+
+        return element + modifier + " " + shape;
+        // Example: FIRE EXPLODE CONE
     }
 
     public static String getSkillDescription(String recipe) {
