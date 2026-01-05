@@ -196,7 +196,7 @@ public class AwakenedStatusScreen extends Screen {
                         SkillEngine.getSkillName(
                                 minecraft.player.getPersistentData()
                                         .getString(SystemData.RECIPE_PREFIX + id)),
-                        26
+                        45
                 );
 
 
