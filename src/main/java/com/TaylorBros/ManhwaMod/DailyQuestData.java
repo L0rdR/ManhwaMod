@@ -31,7 +31,7 @@ public class DailyQuestData {
         boolean isSystem = player.getPersistentData().getBoolean("manhwamod.is_system_player");
 
         // Reset if it's a new day OR if the player is a System Player but has no date recorded (Wiped)
-        if (!today.equals(lastDate) || (isSystem && lastDate.isEmpty())) {
+        if (!today.equals(lastDate) || lastDate.isEmpty()) {
             player.getPersistentData().putString(LAST_RESET, today);
             player.getPersistentData().putInt(MOB_KILLS, 0);
             player.getPersistentData().putDouble(DISTANCE_RUN, 0);
