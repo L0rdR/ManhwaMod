@@ -43,7 +43,9 @@ public class ClientEvents {
         }
     }
     @SubscribeEvent
-    public static void registerGuiOverlays(RegisterGuiOverlaysEvent event) {
+    public static void registerGuiOverlaysEvent(RegisterGuiOverlaysEvent event) {
         event.registerAboveAll("skill_hud", SkillsHudOverlay.HUD_SKILLS);
+        System.out.println("SKILLS HUD RENDERING");
+
     }
 }

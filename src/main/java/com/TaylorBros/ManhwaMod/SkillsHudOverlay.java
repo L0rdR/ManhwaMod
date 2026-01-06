@@ -13,8 +13,6 @@ public class SkillsHudOverlay {
         Player player = mc.player;
         if (player == null) return;
 
-        // Only show if player is a System Player
-        if (!player.getPersistentData().getBoolean("manhwamod.is_system_player")) return;
 
         int x = 10; // Left side of screen
         int y = height / 2 - 50; // Centered vertically
