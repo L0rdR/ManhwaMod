@@ -537,12 +537,12 @@ public class SkillEngine {
 
     private static int getBaseShapeCooldown(SkillTags.Shape s) {
         return switch (s) {
-            case PUNCH, DASH -> 15;
-            case SLASH, VERT_SLASH, HORIZ_SLASH -> 25;
-            case SINGLE, BEAM, BALL, RAY -> 45;
-            case CONE, IMPACT_BURST, FLARE, BOOMERANG -> 60;
+            case PUNCH, DASH, SLASH -> 15;
+            case VERT_SLASH, HORIZ_SLASH, SINGLE, CONE -> 25;
+            case BEAM, BARRAGE, RAY -> 45;
+            case IMPACT_BURST, FLARE, BOOMERANG, BALL -> 60;
             case WALL, SPIKES, BLINK_STRIKE -> 80;
-            case BARRAGE, BARRAGE_PUNCH, SLASH_BARRAGE, RAIN, AOE -> 140;
+            case BARRAGE_PUNCH, SLASH_BARRAGE, RAIN, AOE -> 140;
             default -> 40;
         };
     }
