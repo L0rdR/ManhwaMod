@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -40,5 +41,9 @@ public class ClientEvents {
                 SystemEvents.executeDash(player);
             }
         }
+    }
+    @SubscribeEvent
+    public static void registerGuiOverlays(RegisterGuiOverlaysEvent event) {
+        event.registerAboveAll("skill_hud", SkillsHudOverlay.HUD_SKILLS);
     }
 }
