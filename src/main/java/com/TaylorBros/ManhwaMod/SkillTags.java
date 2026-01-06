@@ -21,6 +21,14 @@ public class SkillTags {
         LIGHTNING,
         VOID,
         FORCE,
+        WATER,
+        EARTH,
+        LAVA,
+        LIGHT,
+        WIND,
+        SHADOW,
+        ACID,
+        POISON,
         NONE,
     }
 
@@ -31,6 +39,11 @@ public class SkillTags {
         LIFESTEAL,
         WEAKEN,
         BOUNCE,
+        CHAIN,
+        VAMPIRE,
+        GRAVITY,
+        WITHER,
+        EXECUTE,
         NONE
     }
 }
