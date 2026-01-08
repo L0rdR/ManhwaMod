@@ -122,4 +122,9 @@ public class SystemData {
             Messages.sendToPlayer(new PacketSyncSystemData(player.getPersistentData()), serverPlayer);
         }
     }
+
+    public static String getSkillRecipe(Player player, int skillId) {
+        // Uses the RECIPE_PREFIX ("manhwamod.skill_recipe_") already defined in this class
+        return player.getPersistentData().getString(RECIPE_PREFIX + skillId);
+    }
 }
