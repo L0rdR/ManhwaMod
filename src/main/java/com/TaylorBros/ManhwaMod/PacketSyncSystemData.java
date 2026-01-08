@@ -14,9 +14,10 @@ public class PacketSyncSystemData {
     public void toBytes(FriendlyByteBuf buf) { buf.writeNbt(data); }
 
     public boolean handle(Supplier<NetworkEvent.Context> supplier) {
+        // Inside the handle method
         NetworkEvent.Context context = supplier.get();
         context.enqueueWork(() -> {
-            Minecraft mc = Minecraft.getInstance();
+            Minecraft mc = Minecraft.getInstance();player.getPersistentData().merge(msg.data);
             if (mc.player != null) {
                 // RULE: Merge all server data into the client player
                 mc.player.getPersistentData().merge(this.data);
