@@ -8,6 +8,11 @@ import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 
 @Mod.EventBusSubscriber(modid = ManhwaMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class SystemEvents {
@@ -47,13 +52,13 @@ public class SystemEvents {
                 player.getPersistentData().putInt("manhwamod.defense", 10);
                 player.getPersistentData().putBoolean("manhwamod.awakened", false);
             }
-                // FORCE QUEST RESET ON NEW PLAYER / WIPE
-                if (player.getPersistentData().getBoolean("manhwamod.is_system_player")) {
-                    // If the player has no quest date recorded, they are likely fresh/wiped
-                    if (player.getPersistentData().getString("manhwamod.quest_date").isEmpty()) {
-                        DailyQuestData.checkAndReset(player);
-                    }
+            // FORCE QUEST RESET ON NEW PLAYER / WIPE
+            if (player.getPersistentData().getBoolean("manhwamod.is_system_player")) {
+                // If the player has no quest date recorded, they are likely fresh/wiped
+                if (player.getPersistentData().getString("manhwamod.quest_date").isEmpty()) {
+                    DailyQuestData.checkAndReset(player);
                 }
+            }
             SystemData.sync(player);
         }
     }

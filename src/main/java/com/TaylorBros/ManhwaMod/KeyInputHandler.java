@@ -35,8 +35,8 @@ public class KeyInputHandler {
             event.register(SKILL_3);
             event.register(SKILL_4);
             event.register(SKILL_5);
-        } // End registerKeys
-    } // End ModBusEvents
+        }
+    }
 
     @Mod.EventBusSubscriber(modid = ManhwaMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
     public static class ForgeBusEvents {
@@ -50,21 +50,20 @@ public class KeyInputHandler {
             boolean isPlayer = SystemData.isSystemPlayer(player);
 
             if (STATUS_KEY.consumeClick()) {
-                if (isPlayer) {
-                    Minecraft.getInstance().setScreen(new StatusScreen());
-                } else {
-                    player.displayClientMessage(Component.literal("§cThe System is not available to you."), true);
-                }
+                if (isPlayer) Minecraft.getInstance().setScreen(new StatusScreen());
             }
 
+            // Kept as original: executing dash and skills
             if (isAwakened) {
                 if (SKILL_1.consumeClick()) Messages.sendToServer(new PacketCastSkill(0));
                 if (SKILL_2.consumeClick()) Messages.sendToServer(new PacketCastSkill(1));
                 if (SKILL_3.consumeClick()) Messages.sendToServer(new PacketCastSkill(2));
                 if (SKILL_4.consumeClick()) Messages.sendToServer(new PacketCastSkill(3));
                 if (SKILL_5.consumeClick()) Messages.sendToServer(new PacketCastSkill(4));
+
+                // Original direct call
                 if (DASH_KEY.consumeClick()) SystemEvents.executeDash(player);
-            } // End isAwakened
-        } // End onKeyInput
-    } // End ForgeBusEvents
-} // End KeyInputHandler
+            }
+        }
+    }
+}

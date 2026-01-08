@@ -30,17 +30,14 @@ public class SkillEngine {
             SkillTags.Element element = SkillTags.Element.valueOf(parts[1].toUpperCase().trim());
             SkillTags.Modifier modifier = SkillTags.Modifier.valueOf(parts[2].toUpperCase().trim());
 
-            // 1. First, define the cooldown key
             String cdKey = "manhwamod.cd_timer_" + skillId;
             long currentTime = player.level().getGameTime();
 
-            // 2. Then, check if we are still on cooldown
             if (currentTime < player.getPersistentData().getLong(cdKey)) {
                 player.displayClientMessage(Component.literal("§cArt Cooldown!"), true);
                 return;
             }
 
-            // 3. If we passed the check, set the NEW cooldown
             int baseCD = getBaseShapeCooldown(shape);
             player.getPersistentData().putLong(cdKey, currentTime + baseCD + (int)(cost * 0.1f));
 
@@ -49,8 +46,9 @@ public class SkillEngine {
             SimpleParticleType p2 = getModifierParticle(modifier);
             playSkillSounds(player, element, modifier);
 
-            player.serverLevel().sendParticles(p1, player.getX(), player.getY(), player.getZ(), 15, 0.4, 0.1, 0.4, 0.05);
+            player.serverLevel().sendParticles(p1, player.getX(), player.getY() + 1, player.getZ(), 15, 0.4, 0.1, 0.4, 0.05);
 
+            // Shape Switch (All shapes stay exactly as you wrote them)
             switch (shape) {
                 case BALL -> runBall(player, p1, p2, modifier, multi, element);
                 case RAY -> runRay(player, p1, p2, modifier, multi, element);
@@ -381,29 +379,101 @@ public class SkillEngine {
         }
     }
 
-    private static void damageArea(ServerPlayer player, Vec3 pos, double range, float dmg, SkillTags.Modifier mod, SkillTags.Element element) {
-        player.level().getEntitiesOfClass(LivingEntity.class, new AABB(pos, pos).inflate(range), e -> e != player).forEach(t -> {
-            t.hurt(player.damageSources().magic(), dmg);
-            applyElementEffect(t, element, player, dmg);
-            applyModifier(t, mod, player);
+    private static void damageArea(ServerPlayer player, Vec3 pos, double range, float baseDmg, SkillTags.Modifier mod, SkillTags.Element element) {
+        // Pull the Intelligence (Mana) stat from your SystemData base
+        int manaStat = player.getPersistentData().getInt("manhwamod.intelligence");
+
+        // Dynamic Damage Scaler: +2% damage per point of Mana
+        float damageMulti = 1.0f + (manaStat * 0.02f);
+
+        // List of elements that handle their own damage (to avoid double-hitting)
+        boolean hasCustomDamage = (element == SkillTags.Element.VOID ||
+                element == SkillTags.Element.FIRE ||
+                element == SkillTags.Element.LAVA ||
+                element == SkillTags.Element.LIGHTNING ||
+                element == SkillTags.Element.LIGHT ||
+                element == SkillTags.Element.ACID || // Added
+                element == SkillTags.Element.ICE);   // Added
+
+        player.level().getEntitiesOfClass(LivingEntity.class, new AABB(pos, pos).inflate(range), e -> e != player).forEach(target -> {
+            // Apply base damage if the element isn't handling it specially
+            if (!hasCustomDamage) {
+                target.hurt(player.damageSources().magic(), baseDmg * damageMulti);
+            }
+
+            // Apply the Scaling Elemental Effect
+            applyElementEffect(target, element, player, baseDmg, manaStat);
+
+            // Apply the Modifier (Lifesteal, Execute, etc.)
+            applyModifier(target, mod, player);
         });
     }
+    private static void applyElementEffect(LivingEntity target, SkillTags.Element element, ServerPlayer source, float baseDmg, int manaStat) {
+        // Scalers for status effects
+        float damageMulti = 1.0f + (manaStat * 0.02f);
+        float boostedMulti = 1.0f + (manaStat * 0.03f);
+        int durationBoost = manaStat * 2; // +0.1s per point
+        int potencyBoost = Math.min(5, manaStat / 20); // Effect Level increases every 20 points
 
-    private static void applyElementEffect(LivingEntity target, SkillTags.Element element, ServerPlayer source, float baseDmg) {
         switch (element) {
-            case FIRE -> target.setSecondsOnFire(4);
-            case ICE -> target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 2));
-            case LIGHTNING -> target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 10, 10));
-            case WATER -> { target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, 1)); target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 40, 0)); }
-            case EARTH -> { target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 3)); target.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 60, 2)); }
-            case LAVA -> { target.setSecondsOnFire(8); target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, 1)); }
-            case WIND -> { target.setDeltaMovement(target.getDeltaMovement().add(0, 0.6, 0)); target.hurtMarked = true; }
-            case SHADOW -> target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40, 0));
-            case ACID -> { target.addEffect(new MobEffectInstance(MobEffects.POISON, 60, 1)); target.getArmorSlots().forEach(s -> s.setDamageValue(s.getDamageValue() + 2)); }
-            case POISON -> target.addEffect(new MobEffectInstance(MobEffects.POISON, 100, 0));
-            case LIGHT -> { target.addEffect(new MobEffectInstance(MobEffects.GLOWING, 100, 0)); if (target.isInvertedHealAndHarm()) target.hurt(source.damageSources().magic(), baseDmg * 0.5f); }
-            case VOID -> { Vec3 pull = source.position().subtract(target.position()).normalize().scale(0.5); target.setDeltaMovement(target.getDeltaMovement().add(pull.x, 0.2, pull.z)); target.hurtMarked = true; }
-            case FORCE -> { Vec3 push = target.position().subtract(source.position()).normalize().scale(1.2); target.setDeltaMovement(target.getDeltaMovement().add(push.x, 0.3, push.z)); target.hurtMarked = true; }
+            case FIRE -> {
+                target.setSecondsOnFire(4 + (manaStat / 10));
+                target.hurt(source.damageSources().magic(), baseDmg * damageMulti);
+            }
+            case ICE -> { // Now uses boostedMulti for damage if it deals any
+                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60 + durationBoost, 2 + potencyBoost));
+                target.hurt(source.damageSources().magic(), baseDmg * boostedMulti);
+            }
+            case LIGHTNING -> {
+                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 15 + (manaStat/5), 10));
+                target.hurt(source.damageSources().lightningBolt(), baseDmg * (1.1f + (manaStat * 0.015f)));
+            }
+            case WATER -> {
+                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40 + durationBoost, 1 + potencyBoost));
+                target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 40 + durationBoost, potencyBoost));
+            }
+            case EARTH -> {
+                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60 + durationBoost, 4));
+                target.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 60 + durationBoost, 2 + potencyBoost));
+            }
+            case LAVA -> { // CHANGED to boostedMulti
+                target.setSecondsOnFire(8 + (manaStat / 5));
+                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40 + durationBoost, 1));
+                target.hurt(source.damageSources().onFire(), baseDmg * boostedMulti);
+            }
+            case WIND -> {
+                float lift = 0.6f + (manaStat * 0.02f);
+                target.setDeltaMovement(target.getDeltaMovement().add(0, lift, 0));
+                target.hurtMarked = true;
+            }
+            case SHADOW -> target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40 + durationBoost, 0));
+            case ACID -> { // Now uses boostedMulti for armor melting and poison
+                target.addEffect(new MobEffectInstance(MobEffects.POISON, 60 + durationBoost, 1 + potencyBoost));
+                // Armor damage scales at 3% intensity
+                int armorMelt = (int)(2 * boostedMulti);
+                target.getArmorSlots().forEach(s -> s.setDamageValue(s.getDamageValue() + armorMelt));
+            }
+            case POISON -> target.addEffect(new MobEffectInstance(MobEffects.POISON, 100 + durationBoost, potencyBoost));
+            case LIGHT -> { // CHANGED to boostedMulti for the Undead bonus
+                target.addEffect(new MobEffectInstance(MobEffects.GLOWING, 100 + durationBoost, 0));
+                if (target.isInvertedHealAndHarm())
+                    target.hurt(source.damageSources().magic(), baseDmg * (boostedMulti * 1.5f));
+                else
+                    source.heal(1.0f + (manaStat * 0.05f));
+            }
+            case VOID -> {
+                float voidMulti = 1.0f + (manaStat * 0.03f); // Void scales harder
+                target.hurt(source.damageSources().fellOutOfWorld(), baseDmg * voidMulti);
+                target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40 + durationBoost, 0));
+                target.setDeltaMovement(target.getDeltaMovement().add(0, 0.3 + (manaStat * 0.01), 0));
+                target.hurtMarked = true;
+            }
+            case FORCE -> {
+                float pushPower = 1.2f + (manaStat * 0.05f);
+                Vec3 push = target.position().subtract(source.position()).normalize().scale(pushPower);
+                target.setDeltaMovement(target.getDeltaMovement().add(push.x, 0.3, push.z));
+                target.hurtMarked = true;
+            }
         }
     }
 

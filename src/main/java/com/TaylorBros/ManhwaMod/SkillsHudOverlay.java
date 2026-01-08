@@ -2,7 +2,6 @@ package com.TaylorBros.ManhwaMod;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
@@ -11,30 +10,30 @@ import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 public class SkillsHudOverlay {
     public static final IGuiOverlay HUD_SKILLS = (gui, guiGraphics, partialTick, width, height) -> {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
+        Player player = mc.player;
+        if (player == null) return;
 
-        var font = mc.font;
-        int x = 10;
-        int y = height / 2 - 50;
+
+        int x = 10; // Left side of screen
+        int y = height / 2 - 50; // Centered vertically
+
+        guiGraphics.drawString(mc.font, "§b§lEQUIPPED ARTS", x, y - 15, 0xFFFFFF);
 
         for (int i = 0; i < 5; i++) {
-            // We pass 'mc.player' because SystemData needs it to access NBT
-            String recipe = SystemData.getSkillRecipe(mc.player, i);
-            boolean isEmpty = recipe.isEmpty() || recipe.equals("0");
+            // Using your SLOT_PREFIX "manhwamod.slot_"
+            String recipe = player.getPersistentData().getString("manhwamod.skill_recipe_ "+ i);
+            String displayName;
 
-            String displayName = recipe.isEmpty() ? "§7" + (i + 1) + ": §8[ Empty ]" : "§f" + (i + 1) + ": §b" + SkillEngine.getSkillName(recipe);
-            int rowY = y + (i * 20); // Spaced for boxes
+            if (recipe == null || recipe.isEmpty() || recipe.equals("0")) {
+                displayName = "§7Slot " + (i + 1) + ": §8Empty";
+            } else {
+                // Use your SkillEngine to format the Tag-based name
+                displayName = "§f" + (i + 1) + ": §b" + SkillEngine.getSkillName(recipe);
+            }
 
-            // 1. Draw the Background Box (Semi-transparent black)
-            guiGraphics.fill(x - 2, rowY - 2, x + 100, rowY + 12, 0x80000000);
-
-            // 2. Draw the Accent Border (Cyan for active, gray for empty)
-            int borderColor = isEmpty ? 0x40FFFFFF : 0xFF00E5FF;
-            guiGraphics.fill(x - 3, rowY - 2, x - 2, rowY + 12, borderColor);
-
-            // 3. Draw the Skill Name
-            guiGraphics.drawString(font, (i + 1) + " ", x + 2, rowY, 0xAAAAAA);
-            guiGraphics.drawString(font, displayName, x + 15, rowY, 0xFFFFFF);
+            // Draw the skill slot
+            guiGraphics.fill(x - 2, y + (i * 20) - 2, x + 100, y + (i * 20) + 12, 0x88000000); // Background box
+            guiGraphics.drawString(mc.font, displayName, x, y + (i * 20), 0xFFFFFF);
         }
     };
 }
