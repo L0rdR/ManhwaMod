@@ -21,7 +21,7 @@ public class SkillsHudOverlay {
 
         for (int i = 0; i < 5; i++) {
             // Using your SLOT_PREFIX "manhwamod.slot_"
-            String recipe = player.getPersistentData().getString("manhwamod.skill_recipe_ "+ i);
+            String recipe = player.getPersistentData().getString("manhwamod.slot_" + i);
             String displayName;
 
             if (recipe == null || recipe.isEmpty() || recipe.equals("0")) {
