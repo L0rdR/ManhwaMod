@@ -8,10 +8,8 @@ import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-@Mod.EventBusSubscriber(
-        modid = ManhwaMod.MODID,
-        value = Dist.CLIENT
-)
+
+@Mod.EventBusSubscriber(modid = ManhwaMod.MODID, value = Dist.CLIENT)
 public class ClientEvents {
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
@@ -48,7 +46,6 @@ public class ClientEvents {
     public static void registerGuiOverlaysEvent(RegisterGuiOverlaysEvent event) {
         event.registerAboveAll("skill_hud", SkillsHudOverlay.HUD_SKILLS);
         System.out.println("SKILLS HUD RENDERING");
-
 
     }
 }
