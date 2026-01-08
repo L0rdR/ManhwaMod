@@ -33,6 +33,8 @@ public class SkillsHudOverlay {
             guiGraphics.fill(x - 3, rowY - 2, x - 2, rowY + 12, borderColor);
 
             // 3. Draw the Skill Name
-            guiGraphics.drawString(font, (i + 1) + " ", x + 2, rowY, 0xAAAAAA);        }
+            guiGraphics.drawString(font, (i + 1) + " ", x + 2, rowY, 0xAAAAAA);
+            guiGraphics.drawString(font, displayName, x + 15, rowY, 0xFFFFFF);
+        }
     };
 }

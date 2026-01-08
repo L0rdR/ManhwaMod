@@ -123,11 +123,12 @@ public class SystemData {
                 syncData.putString(key, nbt.getString(key));
             }
             // This tells the Client to update its UI with the new Server data instantly
-            Messages.sendToPlayer(new PacketSyncSystemData(player.getPersistentData()), serverPlayer);
+            Messages.sendToPlayer(new PacketSyncSystemData(syncData), serverPlayer);
         }
     }
 
     public static String getSkillRecipe(Player player, int skillId) {
-
-        return player.getPersistentData().getString(SLOT_PREFIX + skillId);    }
+        // The HUD needs to read the SLOTS that were synced, not the raw recipe bank
+        return player.getPersistentData().getString(SLOT_PREFIX + skillId);
+    }
 }
