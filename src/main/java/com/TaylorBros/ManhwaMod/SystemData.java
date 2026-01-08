@@ -5,6 +5,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import java.util.List;
 import java.util.ArrayList;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.client.Minecraft;
+
 
 public class SystemData {
     public static final String POINTS = "manhwamod.points";
@@ -109,6 +112,7 @@ public class SystemData {
     public static void sync(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
             CompoundTag nbt = player.getPersistentData();
+
             // Wrap the data we want to send
             CompoundTag syncData = new CompoundTag();
             syncData.putBoolean("manhwamod.is_system_player", nbt.getBoolean("manhwamod.is_system_player"));
@@ -124,7 +128,6 @@ public class SystemData {
     }
 
     public static String getSkillRecipe(Player player, int skillId) {
-        // Uses the RECIPE_PREFIX ("manhwamod.skill_recipe_") already defined in this class
-        return player.getPersistentData().getString(RECIPE_PREFIX + skillId);
-    }
+
+        return player.getPersistentData().getString(SLOT_PREFIX + skillId);    }
 }
