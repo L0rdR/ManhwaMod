@@ -36,13 +36,24 @@ public class PacketUpdateStats {
             int currentPoints = SystemData.getPoints(player);
             if (currentPoints >= amount) {
                 String nbtKey = switch (statType.toUpperCase()) {
-                    case "STR", "STRENGTH" -> SystemData.STR;
-                    case "HP", "HEALTH" -> SystemData.HP;
-                    case "DEF", "DEFENSE" -> SystemData.DEF;
-                    case "SPD", "SPEED" -> SystemData.SPD;
-                    case "MANA" -> SystemData.MANA;
+                    case "STR", "STRENGTH", "STRENGTH:" -> SystemData.STR;
+                    case "HP", "HEALTH", "HEALTH:" -> SystemData.HP;
+                    case "DEF", "DEFENSE", "DEFENSE:" -> SystemData.DEF;
+                    case "SPD", "SPEED", "SPEED:" -> SystemData.SPD;
+                    case "MANA", "MANA:" -> SystemData.MANA;
                     default -> "";
                 };
+                if (nbtKey.equals(SystemData.STR)) {
+                    SystemData.saveStrength(player, SystemData.getStrength(player) + amount);
+                } else if (nbtKey.equals(SystemData.HP)) {
+                    SystemData.saveHealthStat(player, SystemData.getHealthStat(player) + amount);
+                } else if (nbtKey.equals(SystemData.DEF)) {
+                    SystemData.saveDefense(player, SystemData.getDefense(player) + amount);
+                } else if (nbtKey.equals(SystemData.SPD)) {
+                    SystemData.saveSpeed(player, SystemData.getSpeed(player) + amount);
+                } else if (nbtKey.equals(SystemData.MANA)) {
+                    SystemData.saveMana(player, SystemData.getMana(player) + amount);
+                }
                 if (!nbtKey.isEmpty()) {
                     int currentVal = player.getPersistentData().getInt(nbtKey);
 
