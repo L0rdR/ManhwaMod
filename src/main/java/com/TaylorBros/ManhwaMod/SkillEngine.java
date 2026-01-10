@@ -618,7 +618,9 @@ public class SkillEngine {
     }
 
     public static String getSkillName(String recipe) {
-        if (recipe == null || recipe.isEmpty()) return "Unknown Art";
+        if (recipe == null || recipe.isEmpty() || recipe.equals("0")) {
+            return "None";
+        }
         try {
             String[] parts = recipe.split(":");
             return formatName(parts[2]) + " " + formatName(parts[1]) + " " + formatName(parts[0]);

@@ -14,19 +14,18 @@ public class SystemData {
     public static final String XP = "manhwamod.xp";
     public static final String BANK = "manhwamod.unlocked_skills";
 
-    // THE FIX: Centralized Keys
+
     public static final String SLOT_PREFIX = "manhwamod.slot_";
     public static final String STR = "manhwamod.str";
     public static final String HP = "manhwamod.health_stat";
     public static final String DEF = "manhwamod.def";
     public static final String SPD = "manhwamod.spd";
     public static final String MANA = "manhwamod.mana";
-
     public static final String CURRENT_MANA = "manhwamod.current_mana";
     public static final String RECIPE_PREFIX = "manhwamod.skill_recipe_";
     public static final String COST_PREFIX = "manhwamod.skill_cost_";
 
-    // --- ACCESSORS (Now correctly linked to the keys above) ---
+    // --- ACCESSORS ---
     public static int getStrength(Player player) {
         return player.getPersistentData().getInt(STR);
     }
@@ -34,67 +33,70 @@ public class SystemData {
     public static int getHealthStat(Player player) {
         return player.getPersistentData().getInt(HP);
     }
+    public static int getSpeed(Player player) { return player.getPersistentData().getInt(SPD); }
 
     public static int getDefense(Player player) {
         return player.getPersistentData().getInt(DEF);
     }
 
-    public static int getSpeed(Player player) {
-        return player.getPersistentData().getInt(SPD);
-    }
-
-    public static int getMana(Player player) {
-        return player.getPersistentData().getInt(MANA);
-    }
-
-
-    public static int getCurrentMana(Player player) {
-        return player.getPersistentData().getInt(CURRENT_MANA);
-    }
-
     public static int getPoints(Player player) {
         return player.getPersistentData().getInt(POINTS);
     }
+    public static int getCurrentMana(Player player) { return player.getPersistentData().getInt(CURRENT_MANA); }
 
-    public static boolean isAwakened(Player player) {
-        return player.getPersistentData().getBoolean(AWAKENED);
-    }
+    public static int getMana(Player player) { return player.getPersistentData().getInt(MANA); }
+
+    public static int getLevel(Player player) { return player.getPersistentData().getInt(LEVEL); }
+    public static int getXP(Player player) { return player.getPersistentData().getInt(XP); }
 
     public static boolean isSystemPlayer(Player player) {
         return player.getPersistentData().getBoolean(IS_SYSTEM);
     }
+    public static boolean isAwakened(Player player) { return player.getPersistentData().getBoolean(AWAKENED); }
 
-    // --- MUTATORS ---
     public static void savePoints(Player player, int val) {
         player.getPersistentData().putInt(POINTS, val);
         sync(player);
     }
 
-    public static void saveCurrentMana(Player player, int val) {
-        player.getPersistentData().putInt(CURRENT_MANA, val);
-        sync(player);
-    }
+    // --- SYNCING ---
+    public static void sync(Player player) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            CompoundTag nbt = player.getPersistentData();
+            CompoundTag syncData = new CompoundTag();
 
-    public static void saveAwakening(Player player, boolean val) {
-        player.getPersistentData().putBoolean(AWAKENED, val);
-        sync(player);
-    }
+            // 1. Sync the BANK (This restores your Scroll)
+            syncData.putString(BANK, nbt.getString(BANK));
 
-    public static void unlockSkill(Player player, int id, String recipe, int cost) {
-        List<Integer> unlocked = getUnlockedSkills(player);
-        if (!unlocked.contains(id)) {
-            String currentBank = player.getPersistentData().getString(BANK);
-            player.getPersistentData().putString(BANK, currentBank + "[" + id + "]");
+            // 2. Sync the STATS (This restores your Status Screen)
+            syncData.putInt(STR, nbt.getInt(STR));
+            syncData.putInt(HP, nbt.getInt(HP));
+            syncData.putInt(DEF, nbt.getInt(DEF));
+            syncData.putInt(MANA, nbt.getInt(MANA));
+            syncData.putInt(SPD, nbt.getInt(SPD));
+            syncData.putInt(POINTS, nbt.getInt(POINTS));
+            syncData.putInt(LEVEL, nbt.getInt(LEVEL));
+            syncData.putBoolean(IS_SYSTEM, nbt.getBoolean(IS_SYSTEM));
+            syncData.putInt(CURRENT_MANA, nbt.getInt(CURRENT_MANA));
+            syncData.putInt(XP, nbt.getInt(XP));
+
+            // 3. Sync the SLOTS (This restores your HUD)
+            for (int i = 0; i < 5; i++) {
+                String key = SLOT_PREFIX + i;
+                syncData.putString(key, nbt.getString(key));
+            }
+
+            Messages.sendToPlayer(new PacketSyncSystemData(syncData), serverPlayer);
         }
-        player.getPersistentData().putString(RECIPE_PREFIX + id, recipe);
-        player.getPersistentData().putInt(COST_PREFIX + id, cost);
-        sync(player);
     }
 
     public static List<Integer> getUnlockedSkills(Player player) {
         List<Integer> list = new ArrayList<>();
+        if (player == null) return list;
+
         String bank = player.getPersistentData().getString(BANK);
         if (bank.isEmpty()) return list;
+
         String[] parts = bank.replace("[", "").split("]");
         for (String s : parts) {
             if (!s.isEmpty()) try {
@@ -105,21 +107,49 @@ public class SystemData {
         return list;
     }
 
-    // --- SYNCING ---
-    public static void sync(Player player) {
-        if (player instanceof ServerPlayer serverPlayer) {
-            CompoundTag nbt = player.getPersistentData();
-            // Wrap the data we want to send
-            CompoundTag syncData = new CompoundTag();
-            syncData.putBoolean("manhwamod.is_system_player", nbt.getBoolean("manhwamod.is_system_player"));
-
-            // Sync the slots so the HUD knows what to display
-            for (int i = 0; i < 5; i++) {
-                String key = "manhwamod.slot_" + i;
-                syncData.putString(key, nbt.getString(key));
-            }
-            // This tells the Client to update its UI with the new Server data instantly
-            Messages.sendToPlayer(new PacketSyncSystemData(player.getPersistentData()), serverPlayer);
+    public static String getSkillRecipe(Player player, int slotIndex) {
+        return player.getPersistentData().getString(SLOT_PREFIX + slotIndex);
+    }
+    public static void saveCurrentMana(Player player, int val) {
+        player.getPersistentData().putInt(CURRENT_MANA, val);
+        sync(player);
+    }
+    public static void unlockSkill(Player player, int id, String recipe, int cost) {
+        List<Integer> unlocked = getUnlockedSkills(player);
+        if (!unlocked.contains(id)) {
+            String currentBank = player.getPersistentData().getString(BANK);
+            player.getPersistentData().putString(BANK, currentBank + "[" + id + "]");
         }
+        player.getPersistentData().putString(RECIPE_PREFIX + id, recipe);
+        player.getPersistentData().putInt(COST_PREFIX + id, cost);
+        sync(player);
+    }
+    public static void saveAwakening(Player player, boolean val) {
+        player.getPersistentData().putBoolean(AWAKENED, val);
+        sync(player);
+    }
+    public static void saveStrength(Player player, int val) {
+        player.getPersistentData().putInt(STR, val);
+        sync(player);
+    }
+
+    public static void saveHealthStat(Player player, int val) {
+        player.getPersistentData().putInt(HP, val);
+        sync(player);
+    }
+
+    public static void saveDefense(Player player, int val) {
+        player.getPersistentData().putInt(DEF, val);
+        sync(player);
+    }
+
+    public static void saveSpeed(Player player, int val) {
+        player.getPersistentData().putInt(SPD, val);
+        sync(player);
+    }
+
+    public static void saveMana(Player player, int val) {
+        player.getPersistentData().putInt(MANA, val);
+        sync(player);
     }
 }
