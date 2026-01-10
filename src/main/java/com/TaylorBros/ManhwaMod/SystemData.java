@@ -53,8 +53,10 @@ public class SystemData {
     public static boolean isSystemPlayer(Player player) {
         return player.getPersistentData().getBoolean(IS_SYSTEM);
     }
-    public static boolean isAwakened(Player player) { return player.getPersistentData().getBoolean(AWAKENED); }
-
+    public static boolean isAwakened(Player player) {
+        return isSystemPlayer(player)
+                || player.getPersistentData().getBoolean(AWAKENED);
+    }
     public static void savePoints(Player player, int val) {
         player.getPersistentData().putInt(POINTS, val);
         sync(player);
