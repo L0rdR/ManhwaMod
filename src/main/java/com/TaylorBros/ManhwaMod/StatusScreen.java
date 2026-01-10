@@ -177,35 +177,41 @@ public class StatusScreen extends Screen {
         }
     }
 
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (currentTab.equals("SKILLS") && button == 0) {
             int x = (this.width - WINDOW_WIDTH) / 2;
             int y = (this.height - WINDOW_HEIGHT) / 2;
 
-            List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
-            int listY = y + 35;
-
-            // Handle EQ Buttons
-            for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 4); i++) {
-                int rowY = listY + (i - skillScrollOffset) * 22;
-                // Match the render coordinates exactly: x + 150 to x + 172
-                if (mouseX >= x + 150 && mouseX <= x + 172 && mouseY >= rowY && mouseY <= rowY + 20) {
-                    equipToNextEmptySlot(skills.get(i));
-                    return true;
-                }
-            }
-
-            // Handle CLR (Equipped Slots)
+            // 1. Handle CLR (Equipped Slots) - Exactly like Awakened Screen
             for (int slot = 0; slot < 5; slot++) {
                 int sx = x + 15 + (slot * 34);
                 int sy = y + 145;
                 if (mouseX >= sx && mouseX <= sx + 30 && mouseY >= sy && mouseY <= sy + 30) {
-                    Messages.sendToServer(new PacketEquipSkill(slot, 0));
+                    // Use getInt to check if the slot is occupied
+                    int equipped = this.minecraft.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + slot);
+                    if (equipped != 0) {
+                        Messages.sendToServer(new PacketEquipSkill(slot, 0));
+                        return true; // Stop here so it doesn't trigger other clicks
+                    }
+                }
+            }
+
+            // 2. Handle EQ Buttons
+            List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
+            int listY = y + 35;
+            for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 4); i++) {
+                int rowY = listY + (i - skillScrollOffset) * 22;
+                int currentSkillId = skills.get(i);
+
+                // Match the render coordinates exactly
+                if (mouseX >= x + 150 && mouseX <= x + 172 && mouseY >= rowY && mouseY <= rowY + 20) {
+                    equipToNextEmptySlot(currentSkillId);
                     return true;
                 }
             }
-            return true; // Block super() click handling when in the skills tab
+            return true; // Block standard Minecraft click handling while in Skills tab
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }

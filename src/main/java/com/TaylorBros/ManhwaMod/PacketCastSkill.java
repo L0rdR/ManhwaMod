@@ -43,6 +43,12 @@ public class PacketCastSkill {
 
                 // 4. USE THE ENGINE (This fixes particles and full names)
                 SkillEngine.execute(player, skillId);
+                // --- NEW: Record Cooldown Data ---
+                // We use world time (ticks). 100 ticks = 5 seconds.
+                player.getPersistentData().putLong(SystemData.LAST_USE_PREFIX + this.slotId, player.level().getGameTime());
+                player.getPersistentData().putInt(SystemData.COOLDOWN_PREFIX + this.slotId, 100);
+
+                SystemData.sync(player); // Sync to client so HUD sees the update
 
                 // 5. Send the correct full-name message
                 String fullName = SkillEngine.getSkillName(recipe);

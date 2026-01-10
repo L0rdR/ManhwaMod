@@ -24,7 +24,8 @@ public class SystemData {
     public static final String CURRENT_MANA = "manhwamod.current_mana";
     public static final String RECIPE_PREFIX = "manhwamod.skill_recipe_";
     public static final String COST_PREFIX = "manhwamod.skill_cost_";
-
+    public static final String LAST_USE_PREFIX = "manhwamod.last_use_";
+    public static final String COOLDOWN_PREFIX = "manhwamod.cooldown_";
     // --- ACCESSORS ---
     public static int getStrength(Player player) {
         return player.getPersistentData().getInt(STR);
