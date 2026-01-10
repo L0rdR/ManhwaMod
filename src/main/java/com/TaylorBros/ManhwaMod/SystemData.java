@@ -85,6 +85,8 @@ public class SystemData {
             for (int i = 0; i < 5; i++) {
                 String key = SLOT_PREFIX + i;
                 syncData.putInt(key, nbt.getInt(key));
+                syncData.putLong(LAST_USE_PREFIX + i, nbt.getLong(LAST_USE_PREFIX + i));
+                syncData.putInt(COOLDOWN_PREFIX + i, nbt.getInt(COOLDOWN_PREFIX + i));
             }
 
             // 4. Sync Recipes for the Screen
