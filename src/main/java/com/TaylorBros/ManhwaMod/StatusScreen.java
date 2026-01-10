@@ -128,8 +128,8 @@ public class StatusScreen extends Screen {
             String name = SkillEngine.getSkillName(recipe);
 
             boolean isEquipped = false;
-            for (int checkSlot = 0; checkSlot < 5; checkSlot++) {
-                if (this.minecraft.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + checkSlot) == skillId) {
+            for (int s = 0; s < 5; s++) {
+                if (this.minecraft.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + s) == skillId) {
                     isEquipped = true;
                     break;
                 }
@@ -185,14 +185,18 @@ public class StatusScreen extends Screen {
 
             List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
             int listY = y + 35;
+
+            // Handle EQ Buttons
             for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 4); i++) {
                 int rowY = listY + (i - skillScrollOffset) * 22;
-                if (mouseX >= x + 150 && mouseX <= x + 172 && mouseY >= rowY + 1 && mouseY <= rowY + 19) {
+                // Match the render coordinates exactly: x + 150 to x + 172
+                if (mouseX >= x + 150 && mouseX <= x + 172 && mouseY >= rowY && mouseY <= rowY + 20) {
                     equipToNextEmptySlot(skills.get(i));
                     return true;
                 }
             }
 
+            // Handle CLR (Equipped Slots)
             for (int slot = 0; slot < 5; slot++) {
                 int sx = x + 15 + (slot * 34);
                 int sy = y + 145;
@@ -201,6 +205,7 @@ public class StatusScreen extends Screen {
                     return true;
                 }
             }
+            return true; // Block super() click handling when in the skills tab
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }

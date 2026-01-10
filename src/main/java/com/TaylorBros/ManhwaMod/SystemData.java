@@ -75,15 +75,22 @@ public class SystemData {
             syncData.putInt(MANA, nbt.getInt(MANA));
             syncData.putInt(SPD, nbt.getInt(SPD));
             syncData.putInt(POINTS, nbt.getInt(POINTS));
-            syncData.putInt(LEVEL, nbt.getInt(LEVEL));
+            syncData.putBoolean(AWAKENED, nbt.getBoolean(AWAKENED));
             syncData.putBoolean(IS_SYSTEM, nbt.getBoolean(IS_SYSTEM));
+            syncData.putInt(LEVEL, nbt.getInt(LEVEL));
             syncData.putInt(CURRENT_MANA, nbt.getInt(CURRENT_MANA));
             syncData.putInt(XP, nbt.getInt(XP));
 
-            // 3. Sync the SLOTS (This restores your HUD)
             for (int i = 0; i < 5; i++) {
                 String key = SLOT_PREFIX + i;
-                syncData.putString(key, nbt.getString(key));
+                syncData.putInt(key, nbt.getInt(key));
+            }
+
+            // 4. Sync Recipes for the Screen
+            List<Integer> unlocked = getUnlockedSkills(player);
+            for (int id : unlocked) {
+                String rKey = RECIPE_PREFIX + id;
+                syncData.putString(rKey, nbt.getString(rKey));
             }
 
             Messages.sendToPlayer(new PacketSyncSystemData(syncData), serverPlayer);
@@ -108,7 +115,9 @@ public class SystemData {
     }
 
     public static String getSkillRecipe(Player player, int slotIndex) {
-        return player.getPersistentData().getString(SLOT_PREFIX + slotIndex);
+        int skillId = player.getPersistentData().getInt(SLOT_PREFIX + slotIndex);
+        if (skillId == 0) return "";
+        return player.getPersistentData().getString(RECIPE_PREFIX + skillId);
     }
     public static void saveCurrentMana(Player player, int val) {
         player.getPersistentData().putInt(CURRENT_MANA, val);
@@ -126,7 +135,7 @@ public class SystemData {
     }
     public static void saveAwakening(Player player, boolean val) {
         player.getPersistentData().putBoolean(AWAKENED, val);
-        sync(player);
+        sync(player); // This must be here to update the client
     }
     public static void saveStrength(Player player, int val) {
         player.getPersistentData().putInt(STR, val);
@@ -152,4 +161,11 @@ public class SystemData {
         player.getPersistentData().putInt(MANA, val);
         sync(player);
     }
+    public static String getSkillName(String recipe) {
+        if (recipe == null || recipe.isEmpty()) return "Unknown";
+        String[] parts = recipe.split(":");
+        if (parts.length < 2) return "Art";
+        return parts[1] + " " + parts[0];
+    }
+
 }

@@ -85,17 +85,19 @@ public class AwakenedStatusScreen extends Screen {
                 }
             }
 
-            // ===== EQ BUTTONS =====
+            // ===== EQ BUTTONS (FIXED) =====
             List<Integer> skills = SystemData.getUnlockedSkills(minecraft.player);
             int listY = y + 35;
 
             for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 4); i++) {
                 int rowY = listY + (i - skillScrollOffset) * 22;
+                int currentSkillId = skills.get(i);
 
+                // Check if mouse is over the "EQ" button area (x + 150 to x + 172)
                 if (mouseX >= x + 150 && mouseX <= x + 172 &&
                         mouseY >= rowY + 1 && mouseY <= rowY + 19) {
 
-                    equipToNextEmptySlot(skills.get(i));
+                    equipToNextEmptySlot(currentSkillId);
                     return true;
                 }
             }
@@ -151,11 +153,8 @@ public class AwakenedStatusScreen extends Screen {
 
         for (int i = skillScrollOffset; i < Math.min(skills.size(), skillScrollOffset + 4); i++) {
             int id = skills.get(i);
-            String recipe = minecraft.player.getPersistentData()
-                    .getString(SystemData.RECIPE_PREFIX + id);
-
-            String name = clipText(SkillEngine.getSkillName(recipe), 115);
-
+            String recipe = minecraft.player.getPersistentData().getString(SystemData.RECIPE_PREFIX + id);
+            String displayName = SkillEngine.getSkillName(recipe);
             boolean equipped = false;
             for (int s = 0; s < 5; s++)
                 if (minecraft.player.getPersistentData()
@@ -167,8 +166,7 @@ public class AwakenedStatusScreen extends Screen {
             g.pose().pushPose();
             g.pose().translate(x + 20, sy + 6, 0);
             g.pose().scale(0.85f, 0.85f, 1);
-            g.drawString(font, (equipped ? "§7" : "§e") + name, 0, 0, 0xFFFFFF);
-            g.pose().popPose();
+            g.drawString(font, (equipped ? "§7" : "§e") + displayName, 0, 0, 0xFFFFFF);            g.pose().popPose();
 
             if (!equipped) {
                 g.fill(x + 150, sy + 1, x + 172, sy + 19, 0x6600AAFF);
@@ -218,10 +216,12 @@ public class AwakenedStatusScreen extends Screen {
 
     private void equipToNextEmptySlot(int skillId) {
         for (int s = 0; s < 5; s++) {
-            int cur = minecraft.player.getPersistentData()
-                    .getInt(SystemData.SLOT_PREFIX + s);
+            int cur = minecraft.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + s);
 
+            // If already equipped in any slot, stop.
             if (cur == skillId) return;
+
+            // Find the first empty slot and send packet.
             if (cur == 0) {
                 Messages.sendToServer(new PacketEquipSkill(s, skillId));
                 return;

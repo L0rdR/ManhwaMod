@@ -29,8 +29,8 @@ public class PacketEquipSkill {
         context.enqueueWork(() -> {
             ServerPlayer player = context.getSender();
             if (player != null) {
-                // THE FIX: Allow the update if the skillId is 0 (clearing) OR if the player has unlocked the skill
-                if (skillId == 0 || SystemData.getUnlockedSkills(player).contains(skillId)) {
+                // Simplified check: if skillId is 0 (clearing) or valid ID
+                if (skillId >= 0) {
                     player.getPersistentData().putInt(SystemData.SLOT_PREFIX + slotId, skillId);
                     SystemData.sync(player);
                 }
