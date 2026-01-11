@@ -16,10 +16,10 @@ public class SystemData {
 
 
     public static final String SLOT_PREFIX = "manhwamod.slot_";
-    public static final String STR = "manhwamod.strength";
+    public static final String STR = "manhwamod.str";
     public static final String HP = "manhwamod.health_stat";
-    public static final String DEF = "manhwamod.defense";
-    public static final String SPD = "manhwamod.speed";
+    public static final String DEF = "manhwamod.def";
+    public static final String SPD = "manhwamod.spd";
     public static final String MANA = "manhwamod.mana";
     public static final String CURRENT_MANA = "manhwamod.current_mana";
     public static final String RECIPE_PREFIX = "manhwamod.skill_recipe_";

@@ -33,16 +33,25 @@ public class PacketUpdateStats {
             ServerPlayer player = context.getSender();
             if (player == null) return;
 
+            // 1. Identify which stat the button is trying to upgrade
+            // Matches "STR", "HP", "DEF", "SPD", "MANA" from StatusScreen.java
+            String nbtKey = switch (statType.toUpperCase()) {
+                case "STR", "STRENGTH" -> SystemData.STR;
+                case "HP", "HEALTH" -> SystemData.HP;
+                case "DEF", "DEFENSE" -> SystemData.DEF;
+                case "SPD", "SPEED" -> SystemData.SPD;
+                case "MANA" -> SystemData.MANA;
+                default -> "";
+            };
+
+            if (nbtKey.isEmpty()) return;
+
+            // 2. Check Points and Deduct
             int currentPoints = SystemData.getPoints(player);
             if (currentPoints >= amount) {
-                String nbtKey = switch (statType.toUpperCase()) {
-                    case "STR", "STRENGTH", "STRENGTH:" -> SystemData.STR;
-                    case "HP", "HEALTH", "HEALTH:" -> SystemData.HP;
-                    case "DEF", "DEFENSE", "DEFENSE:" -> SystemData.DEF;
-                    case "SPD", "SPEED", "SPEED:" -> SystemData.SPD;
-                    case "MANA", "MANA:" -> SystemData.MANA;
-                    default -> "";
-                };
+                SystemData.savePoints(player, currentPoints - amount);
+
+                // 3. Save the specific stat (Logic previously missing for HP/DEF/SPD)
                 if (nbtKey.equals(SystemData.STR)) {
                     SystemData.saveStrength(player, SystemData.getStrength(player) + amount);
                 } else if (nbtKey.equals(SystemData.HP)) {
@@ -54,26 +63,8 @@ public class PacketUpdateStats {
                 } else if (nbtKey.equals(SystemData.MANA)) {
                     SystemData.saveMana(player, SystemData.getMana(player) + amount);
                 }
-                if (!nbtKey.isEmpty()) {
-                    int currentVal = player.getPersistentData().getInt(nbtKey);
 
-                    // FIX: 1 point spent = 1 point added to the STAT.
-                    int newVal = currentVal + amount;
-
-                    player.getPersistentData().putInt(nbtKey, newVal);
-                    SystemData.savePoints(player, currentPoints - amount);
-
-                    // Milestone Logic: Trigger every 5 Stat points (50 Pool)
-                    if (statType.equals("MANA")) {
-                        int oldMilestones = currentVal / 50;
-                        int newMilestones = newVal / 50;
-                        if (newMilestones > oldMilestones) {
-                            for (int i = 0; i < (newMilestones - oldMilestones); i++) {
-                                generateUniqueSkill(player);
-                            }
-                        }
-                    }
-                }
+                // 4. Sync immediately so the screen updates
                 SystemData.sync(player);
             }
         });
