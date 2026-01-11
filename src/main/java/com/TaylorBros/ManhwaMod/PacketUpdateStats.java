@@ -33,9 +33,9 @@ public class PacketUpdateStats {
             ServerPlayer player = context.getSender();
             if (player == null) return;
 
-            // 1. Identify which stat the button is trying to upgrade
-            // Matches "STR", "HP", "DEF", "SPD", "MANA" from StatusScreen.java
+            // 1. Determine the NBT Key based on the button clicked
             String nbtKey = switch (statType.toUpperCase()) {
+                // Matches the "STR", "HP", etc. sent from StatusScreen.java
                 case "STR", "STRENGTH" -> SystemData.STR;
                 case "HP", "HEALTH" -> SystemData.HP;
                 case "DEF", "DEFENSE" -> SystemData.DEF;
@@ -46,12 +46,12 @@ public class PacketUpdateStats {
 
             if (nbtKey.isEmpty()) return;
 
-            // 2. Check Points and Deduct
+            // 2. Check and Deduct Points
             int currentPoints = SystemData.getPoints(player);
             if (currentPoints >= amount) {
                 SystemData.savePoints(player, currentPoints - amount);
 
-                // 3. Save the specific stat (Logic previously missing for HP/DEF/SPD)
+                // 3. Save the correct Stat (THIS WAS MISSING HP, DEF, SPD)
                 if (nbtKey.equals(SystemData.STR)) {
                     SystemData.saveStrength(player, SystemData.getStrength(player) + amount);
                 } else if (nbtKey.equals(SystemData.HP)) {
@@ -64,7 +64,7 @@ public class PacketUpdateStats {
                     SystemData.saveMana(player, SystemData.getMana(player) + amount);
                 }
 
-                // 4. Sync immediately so the screen updates
+                // 4. Sync to Client
                 SystemData.sync(player);
             }
         });
