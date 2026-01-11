@@ -55,13 +55,14 @@ public class PacketUpdateStats {
                         SystemData.saveSpeed(player, SystemData.getSpeed(player) + amount);
 
                 case "MANA", "MANA:" -> {
-                    int currentMana = SystemData.getMana(player);
-                    SystemData.saveMana(player, currentMana + amount);
+                    int oldMana = SystemData.getMana(player);
+                    int newMana = oldMana + amount;
+                    SystemData.saveMana(player, newMana);
 
-                    // !!! PASTE YOUR SKILL GENERATION CODE HERE !!!
-                    // The file you uploaded earlier was missing this logic,
-                    // so I cannot restore it. Paste your generic/random skill check here.
-                    // Example: if (currentMana + amount >= 10) SkillEngine.generate(player);
+                    // Triggers a new skill every 10 Mana Points (10, 20, 30...)
+                    if (newMana / 50 > oldMana / 50) {
+                        generateUniqueSkill(player);
+                    }
                 }
 
                 case "WIPE" -> {
