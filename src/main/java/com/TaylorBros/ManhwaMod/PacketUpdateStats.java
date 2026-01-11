@@ -33,40 +33,57 @@ public class PacketUpdateStats {
             ServerPlayer player = context.getSender();
             if (player == null) return;
 
-            // 1. Determine the NBT Key based on the button clicked
-            String nbtKey = switch (statType.toUpperCase()) {
-                // Matches the "STR", "HP", etc. sent from StatusScreen.java
-                case "STR", "STRENGTH" -> SystemData.STR;
-                case "HP", "HEALTH" -> SystemData.HP;
-                case "DEF", "DEFENSE" -> SystemData.DEF;
-                case "SPD", "SPEED" -> SystemData.SPD;
-                case "MANA" -> SystemData.MANA;
-                default -> "";
-            };
-
-            if (nbtKey.isEmpty()) return;
-
-            // 2. Check and Deduct Points
+            // 1. Check Points
             int currentPoints = SystemData.getPoints(player);
-            if (currentPoints >= amount) {
-                SystemData.savePoints(player, currentPoints - amount);
+            if (currentPoints < amount) return;
 
-                // 3. Save the correct Stat (THIS WAS MISSING HP, DEF, SPD)
-                if (nbtKey.equals(SystemData.STR)) {
-                    SystemData.saveStrength(player, SystemData.getStrength(player) + amount);
-                } else if (nbtKey.equals(SystemData.HP)) {
-                    SystemData.saveHealthStat(player, SystemData.getHealthStat(player) + amount);
-                } else if (nbtKey.equals(SystemData.DEF)) {
-                    SystemData.saveDefense(player, SystemData.getDefense(player) + amount);
-                } else if (nbtKey.equals(SystemData.SPD)) {
-                    SystemData.saveSpeed(player, SystemData.getSpeed(player) + amount);
-                } else if (nbtKey.equals(SystemData.MANA)) {
-                    SystemData.saveMana(player, SystemData.getMana(player) + amount);
+            // 2. Deduct Points
+            SystemData.savePoints(player, currentPoints - amount);
+
+            // 3. Update Stat (SWITCH on the Button Name to avoid NBT errors)
+            switch (this.statType.toUpperCase()) {
+                case "STR", "STRENGTH", "STRENGTH:" ->
+                        SystemData.saveStrength(player, SystemData.getStrength(player) + amount);
+
+                case "HP", "HEALTH", "HEALTH:" ->
+                        SystemData.saveHealthStat(player, SystemData.getHealthStat(player) + amount);
+
+                case "DEF", "DEFENSE", "DEFENSE:" ->
+                        SystemData.saveDefense(player, SystemData.getDefense(player) + amount);
+
+                case "SPD", "SPEED", "SPEED:" ->
+                        SystemData.saveSpeed(player, SystemData.getSpeed(player) + amount);
+
+                case "MANA", "MANA:" -> {
+                    int currentMana = SystemData.getMana(player);
+                    SystemData.saveMana(player, currentMana + amount);
+
+                    // !!! PASTE YOUR SKILL GENERATION CODE HERE !!!
+                    // The file you uploaded earlier was missing this logic,
+                    // so I cannot restore it. Paste your generic/random skill check here.
+                    // Example: if (currentMana + amount >= 10) SkillEngine.generate(player);
                 }
 
-                // 4. Sync to Client
-                SystemData.sync(player);
+                case "WIPE" -> {
+                    player.getPersistentData().remove(SystemData.STR);
+                    player.getPersistentData().remove(SystemData.HP);
+                    player.getPersistentData().remove(SystemData.DEF);
+                    player.getPersistentData().remove(SystemData.SPD);
+                    player.getPersistentData().remove(SystemData.MANA);
+                    player.getPersistentData().remove(SystemData.BANK);
+                    player.getPersistentData().remove(SystemData.POINTS);
+                    // Reset defaults
+                    SystemData.saveStrength(player, 10);
+                    SystemData.saveHealthStat(player, 20);
+                    SystemData.saveDefense(player, 10);
+                    SystemData.saveSpeed(player, 10);
+                    SystemData.saveMana(player, 10);
+                    SystemData.sync(player);
+                }
             }
+
+            // 4. Sync
+            SystemData.sync(player);
         });
         return true;
     }

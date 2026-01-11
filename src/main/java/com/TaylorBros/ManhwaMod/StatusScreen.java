@@ -55,6 +55,15 @@ public class StatusScreen extends Screen {
             addStatButton(bx, sy + 60, "SPD");
             addStatButton(bx, sy + 80, "MANA");
         }
+        // TEMPORARY DEBUG BUTTON - DELETE THIS BLOCK AFTER FIXING
+        this.addRenderableWidget(Button.builder(Component.literal("!!! WIPE DATA !!!"), (button) -> {
+            // Send a negative point packet as a signal to wipe (hacky but works instantly)
+            // Or better: call a wipe method if we are on client (which we are).
+            // Since we can't wipe server data from client directly, we must use a packet.
+            // Let's use the PacketUpdateStats with a special code "WIPE"
+            Messages.sendToServer(new PacketUpdateStats(0, "WIPE"));
+            this.minecraft.setScreen(null);
+        }).bounds(x + 110, y - 25, 100, 20).build());
     }
 
     // ==================================================
@@ -294,4 +303,5 @@ public class StatusScreen extends Screen {
         }
         return super.mouseScrolled(mouseX, mouseY, delta);
     }
+
 }

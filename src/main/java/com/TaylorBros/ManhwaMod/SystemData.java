@@ -16,11 +16,13 @@ public class SystemData {
 
 
     public static final String SLOT_PREFIX = "manhwamod.slot_";
+    // These are the DEFINITIVE keys. Do not change them again.
     public static final String STR = "manhwamod.strength";
     public static final String HP = "manhwamod.health_stat";
     public static final String DEF = "manhwamod.defense";
     public static final String SPD = "manhwamod.speed";
     public static final String MANA = "manhwamod.mana";
+    //
     public static final String CURRENT_MANA = "manhwamod.current_mana";
     public static final String RECIPE_PREFIX = "manhwamod.skill_recipe_";
     public static final String COST_PREFIX = "manhwamod.skill_cost_";
