@@ -98,6 +98,16 @@ public class SystemData {
                 String rKey = RECIPE_PREFIX + id;
                 syncData.putString(rKey, nbt.getString(rKey));
             }
+            // 5. Sync Cooldowns for Equipped Skills (Required for HUD)
+            for (int i = 0; i < 5; i++) {
+                int id = nbt.getInt(SLOT_PREFIX + i);
+                if (id != 0) {
+                    String unlockKey = "manhwamod.cd_timer_" + id;
+                    String durKey = "manhwamod.cd_duration_" + id;
+                    syncData.putLong(unlockKey, nbt.getLong(unlockKey));
+                    syncData.putInt(durKey, nbt.getInt(durKey));
+                }
+            }
 
             Messages.sendToPlayer(new PacketSyncSystemData(syncData), serverPlayer);
         }

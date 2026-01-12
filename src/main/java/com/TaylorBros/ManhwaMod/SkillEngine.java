@@ -39,7 +39,15 @@ public class SkillEngine {
             }
 
             int baseCD = getBaseShapeCooldown(shape);
-            player.getPersistentData().putLong(cdKey, currentTime + baseCD + (int)(cost * 0.1f));
+            int totalDuration = baseCD + (int)(cost * 0.1f);
+
+            // Save the exact time it will be ready (Unlock Time)
+            player.getPersistentData().putLong(cdKey, currentTime + totalDuration);
+            // Save the total duration (for the HUD bar calculation)
+            player.getPersistentData().putInt("manhwamod.cd_duration_" + skillId, totalDuration);
+
+            // Sync immediately so the bar appears instantly
+            SystemData.sync(player);
 
             float multi = 1.0f + (cost / 100.0f);
             SimpleParticleType p1 = getElementParticle(element);

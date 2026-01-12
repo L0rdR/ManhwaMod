@@ -3,6 +3,7 @@ package com.TaylorBros.ManhwaMod;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -53,17 +54,40 @@ public class KeyInputHandler {
                 if (isPlayer) Minecraft.getInstance().setScreen(new StatusScreen());
             }
 
-            // Kept as original: executing dash and skills
             if (isAwakened) {
-                if (SKILL_1.consumeClick()) Messages.sendToServer(new PacketCastSkill(0));
-                if (SKILL_2.consumeClick()) Messages.sendToServer(new PacketCastSkill(1));
-                if (SKILL_3.consumeClick()) Messages.sendToServer(new PacketCastSkill(2));
-                if (SKILL_4.consumeClick()) Messages.sendToServer(new PacketCastSkill(3));
-                if (SKILL_5.consumeClick()) Messages.sendToServer(new PacketCastSkill(4));
+                // REPLACED: Calls helper method 'tryCastSkill' instead of sending packet directly
+                if (SKILL_1.consumeClick()) tryCastSkill(player, 0);
+                if (SKILL_2.consumeClick()) tryCastSkill(player, 1);
+                if (SKILL_3.consumeClick()) tryCastSkill(player, 2);
+                if (SKILL_4.consumeClick()) tryCastSkill(player, 3);
+                if (SKILL_5.consumeClick()) tryCastSkill(player, 4);
 
-                // Original direct call
                 if (DASH_KEY.consumeClick()) SystemEvents.executeDash(player);
             }
+        }
+
+        // --- NEW HELPER METHOD ---
+        // Prevents sending packets if the skill is on cooldown
+        private static void tryCastSkill(Player player, int slotId) {
+            // 1. Get Skill ID (Optimization: Don't send packet if slot is empty)
+            int skillId = player.getPersistentData().getInt(SystemData.SLOT_PREFIX + slotId);
+            if (skillId <= 0) return;
+
+            // 2. Check Cooldown (Optimization: Don't send packet if on cooldown)
+            long lastUse = player.getPersistentData().getLong(SystemData.LAST_USE_PREFIX + slotId);
+            int cooldown = player.getPersistentData().getInt(SystemData.COOLDOWN_PREFIX + slotId);
+            long timePassed = player.level().getGameTime() - lastUse;
+
+            if (timePassed < cooldown) return;
+
+            // 3. Check Mana (Optimization: Don't send packet if too poor)
+            int cost = player.getPersistentData().getInt(SystemData.COST_PREFIX + skillId);
+            int currentMana = SystemData.getCurrentMana(player);
+
+            if (currentMana < cost) return;
+
+            // 4. Send Packet if Safe
+            Messages.sendToServer(new PacketCastSkill(slotId));
         }
     }
 }

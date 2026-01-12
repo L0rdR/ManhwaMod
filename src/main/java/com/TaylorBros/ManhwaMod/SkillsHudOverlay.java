@@ -22,21 +22,24 @@ public class SkillsHudOverlay {
             guiGraphics.fill(x - 2, rowY - 2, x + 120, rowY + 14, 0x44000000);
 
             if (!isEmpty) {
-                long lastUse = mc.player.getPersistentData().getLong(SystemData.LAST_USE_PREFIX + i);
-                int cooldownMax = mc.player.getPersistentData().getInt(SystemData.COOLDOWN_PREFIX + i);
-                long elapsed = mc.level.getGameTime() - lastUse;
+                // Get Skill ID from the slot to find its specific cooldown
+                int skillId = mc.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + i);
 
-                // 2. Flash Effect (Bright white overlay for 3 ticks after cast)
-                if (elapsed >= 0 && elapsed < 3) {
-                    guiGraphics.fill(x - 2, rowY - 2, x + 120, rowY + 14, 0x88FFFFFF);
-                }
+                // Read the synced values
+                long unlockTime = mc.player.getPersistentData().getLong("manhwamod.cd_timer_" + skillId);
+                int totalDuration = mc.player.getPersistentData().getInt("manhwamod.cd_duration_" + skillId);
+                long timeLeft = unlockTime - mc.level.getGameTime();
 
-                // 3. Cooldown Bar (Yellow bar that shrinks)
-                if (elapsed < cooldownMax) {
-                    float pct = 1.0f - ((float) elapsed / cooldownMax);
-                    int barWidth = (int) (pct * 122);
-                    // Draws a thin bar at the bottom of the slot
+                // 1. Flash Effect (If cooldown just finished or is active)
+                if (timeLeft > 0) {
+                    // 2. Cooldown Bar (Yellow bar shrinking)
+                    float pct = (float) timeLeft / totalDuration;
+                    int barWidth = (int) (pct * 122); // 122 is the max width
                     guiGraphics.fill(x - 2, rowY + 12, x - 2 + barWidth, rowY + 14, 0xFFFFD700);
+                }
+                else if (timeLeft > -5 && timeLeft <= 0) {
+                    // Flash White for 5 ticks when ready
+                    guiGraphics.fill(x - 2, rowY - 2, x + 120, rowY + 14, 0x88FFFFFF);
                 }
 
                 String displayName = "§b" + (i + 1) + ": " + SkillEngine.getSkillName(recipe);
