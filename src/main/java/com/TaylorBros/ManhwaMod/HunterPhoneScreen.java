@@ -99,7 +99,8 @@ public class HunterPhoneScreen extends Screen {
         switch (currentApp) {
             case 0 -> renderHomeScreen(guiGraphics, cx, cy);
             case 1 -> renderStatusApp(guiGraphics, cx, cy, p);
-            case 2 -> renderSkillsApp(guiGraphics, cx, cy, p); // NEW METHOD
+            // CHANGED: Added mouseX and mouseY here
+            case 2 -> renderSkillsApp(guiGraphics, cx, cy, p, mouseX, mouseY);
             case 3 -> renderPlaceholderApp(guiGraphics, cx, cy, "QUESTS");
             case 4 -> renderPlaceholderApp(guiGraphics, cx, cy, "MAP");
         }
@@ -112,10 +113,10 @@ public class HunterPhoneScreen extends Screen {
     }
 
     // --- DYNAMIC SKILLS APP ---
-    private void renderSkillsApp(GuiGraphics guiGraphics, int cx, int cy, Player p) {
+    // CHANGED: Added 'int mouseX, int mouseY' to the arguments
+    private void renderSkillsApp(GuiGraphics guiGraphics, int cx, int cy, Player p, int mouseX, int mouseY) {
         guiGraphics.drawCenteredString(this.font, "§dACQUIRED ARTS", cx, cy - 90, 0xFFFFFF);
 
-        // 1. Get the total count of generated skills saved on the player
         int totalSkills = p.getPersistentData().getInt("manhwamod.total_unlocked");
 
         if (totalSkills <= 0) {
@@ -127,33 +128,26 @@ public class HunterPhoneScreen extends Screen {
         int startY = cy - 70;
         int rowHeight = 25;
 
-        // 2. Loop through ONLY the skills currently saved in NBT
         for (int i = 0; i < totalSkills; i++) {
-            // Stop rendering if we run out of screen space (Simple scrolling placeholder)
             if (i > 5) break;
 
             int yPos = startY + (i * rowHeight);
 
-            // Fetch the specific generated recipe (e.g., "BEAM:FIRE:EXPLODE")
             String recipe = p.getPersistentData().getString("manhwamod.unlocked_skill_" + i);
             String displayName = SkillEngine.getSkillName(recipe);
             int cost = p.getPersistentData().getInt("manhwamod.unlocked_cost_" + i);
 
-            // Draw Background
+            // Now 'mouseX' and 'mouseY' are valid here!
             boolean isHovered = (mouseX >= cx - 70 && mouseX <= cx + 70 && mouseY >= yPos && mouseY <= yPos + 22);
             int bgColor = isHovered ? 0xFF303050 : 0xFF151520;
 
             guiGraphics.fill(cx - 70, yPos, cx + 70, yPos + 22, bgColor);
             guiGraphics.renderOutline(cx - 70, yPos, 140, 22, 0xFF000000);
 
-            // Draw Skill Name
             guiGraphics.drawString(this.font, displayName, cx - 65, yPos + 7, 0xFFFFFFFF);
-
-            // Draw Mana Cost
             String costText = cost + " MP";
             guiGraphics.drawString(this.font, costText, cx + 65 - this.font.width(costText), yPos + 7, 0xFF55FFFF);
 
-            // Tooltip / Interaction Hint
             if (isHovered) {
                 guiGraphics.drawCenteredString(this.font, "§e[Click to Equip]", cx, cy + 90, 0xFFFFFF);
             }
