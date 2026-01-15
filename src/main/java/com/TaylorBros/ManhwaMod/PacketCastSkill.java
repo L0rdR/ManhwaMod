@@ -46,12 +46,16 @@ public class PacketCastSkill {
                 SystemData.saveCurrentMana(player, currentMana - cost);
 
                 // 5. USE THE ENGINE
-                SkillEngine.execute(player, skillId);
+                // 4. Fetch Intelligence once (Optimization)
+                int intelligence = player.getPersistentData().getInt("manhwamod.intelligence");
+
+                // 5. USE THE ENGINE (Pass data, Get correct cooldown)
+                int actualCooldown = SkillEngine.execute(player, skillId, recipe, cost, intelligence);
 
                 // 6. Record New Cooldown Data
-                // Currently hardcoded to 100 ticks (5 seconds) as per your previous code
                 player.getPersistentData().putLong(SystemData.LAST_USE_PREFIX + this.slotId, player.level().getGameTime());
-                player.getPersistentData().putInt(SystemData.COOLDOWN_PREFIX + this.slotId, 100);
+                // Save the ACTUAL calculated cooldown, not hardcoded 100
+                player.getPersistentData().putInt(SystemData.COOLDOWN_PREFIX + this.slotId, actualCooldown);
 
                 SystemData.sync(player);
 
