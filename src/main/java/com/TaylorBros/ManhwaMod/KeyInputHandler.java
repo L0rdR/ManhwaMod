@@ -51,7 +51,7 @@ public class KeyInputHandler {
             boolean isPlayer = SystemData.isSystemPlayer(player);
 
             if (STATUS_KEY.consumeClick()) {
-                if (isPlayer) Minecraft.getInstance().setScreen(new StatusScreen());
+                if (isPlayer) Minecraft.getInstance().setScreen(new HunterPhoneScreen());
             }
 
             if (isAwakened) {
