@@ -68,5 +68,12 @@ public class Messages {
                 .encoder(PacketCastSkill::toBytes)
                 .consumerMainThread(PacketCastSkill::handle)
                 .add();
+        // 6. INCREASE STAT (Client -> Server)
+        net.messageBuilder(PacketIncreaseStat.class, id(), NetworkDirection.PLAY_TO_SERVER)
+                .decoder(PacketIncreaseStat::new)
+                .encoder(PacketIncreaseStat::toBytes)
+                .consumerMainThread(PacketIncreaseStat::handle)
+                .add();
     }
+
 }

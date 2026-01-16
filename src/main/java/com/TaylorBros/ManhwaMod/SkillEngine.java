@@ -77,8 +77,9 @@ public class SkillEngine {
     // --- Updated Methods (Accepting 'int intelligence') ---
 
     private static void damageArea(ServerPlayer player, Vec3 pos, double range, float baseDmg, SkillTags.Modifier mod, SkillTags.Element element, int manaStat) {
-        // OPTIMIZATION: Removed NBT lookup. Uses passed 'manaStat'.
-        float damageMulti = 1.0f + (manaStat * 0.02f);
+        // FORMULA: 0.5% Magic Damage per point.
+        // Matches Strength scaling perfectly.
+        float damageMulti = 1.0f + (manaStat * 0.005f);
 
         boolean hasCustomDamage = (element == SkillTags.Element.VOID || element == SkillTags.Element.FIRE ||
                 element == SkillTags.Element.LAVA || element == SkillTags.Element.LIGHTNING ||
