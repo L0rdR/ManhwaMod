@@ -177,7 +177,34 @@ public class SystemData {
         player.getPersistentData().putInt(MANA, val);
         sync(player);
     }
+    // 1. The "Save Slot" name
+    public static final String AFFINITY = "manhwamod.affinity";
 
+    // 2. The SETTER (Use this to give a player an element)
+    public static void setAffinity(Player player, Affinity affinity) {
+        // We save the NAME of the affinity (e.g., "FIRE") as a String
+        player.getPersistentData().putString(AFFINITY, affinity.name());
+
+        // CRITICAL: Sync the data so the client-side (your screen) knows the element changed
+        sync(player);
+    }
+
+    // 3. The GETTER (Use this to check what element a player is)
+    public static Affinity getAffinity(Player player) {
+        String affinityName = player.getPersistentData().getString(AFFINITY);
+
+        // If the player doesn't have an element yet, return NONE
+        if (affinityName.isEmpty()) {
+            return Affinity.NONE;
+        }
+
+        try {
+            // Convert the saved String back into the Affinity element
+            return Affinity.valueOf(affinityName);
+        } catch (IllegalArgumentException e) {
+            return Affinity.NONE;
+        }
+    }
 
 
 }
