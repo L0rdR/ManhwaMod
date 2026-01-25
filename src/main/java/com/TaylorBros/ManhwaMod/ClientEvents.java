@@ -20,8 +20,8 @@ public class ClientEvents {
             while (KeyInputHandler.STATUS_KEY.consumeClick()) {
                 if (SystemData.isAwakened(player)) {
                     if (SystemData.isSystemPlayer(player)) {
-                        Minecraft.getInstance().setScreen(new StatusScreen());
-                    } else {
+                    }
+                    else {
                         player.sendSystemMessage(Component.literal("§c[SYSTEM] §7Error: Use an Evaluation Crystal."));
                     }
                 } else {

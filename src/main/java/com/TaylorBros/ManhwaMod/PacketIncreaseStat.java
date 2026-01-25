@@ -10,10 +10,22 @@ import java.util.function.Supplier;
 
 public class PacketIncreaseStat {
     private final String statName;
+    private final int amount; // NEW: Stores the multiplier (1, 10, or 100)
 
-    public PacketIncreaseStat(String statName) { this.statName = statName; }
-    public PacketIncreaseStat(FriendlyByteBuf buf) { this.statName = buf.readUtf(); }
-    public void toBytes(FriendlyByteBuf buf) { buf.writeUtf(statName); }
+    public PacketIncreaseStat(String statName, int amount) {
+        this.statName = statName;
+        this.amount = amount;
+    }
+
+    public PacketIncreaseStat(FriendlyByteBuf buf) {
+        this.statName = buf.readUtf();
+        this.amount = buf.readInt(); // Read int
+    }
+
+    public void toBytes(FriendlyByteBuf buf) {
+        buf.writeUtf(statName);
+        buf.writeInt(amount); // Write int
+    }
 
     public boolean handle(Supplier<NetworkEvent.Context> supplier) {
         NetworkEvent.Context context = supplier.get();
@@ -21,26 +33,31 @@ public class PacketIncreaseStat {
             ServerPlayer player = context.getSender();
             if (player == null) return;
 
-            int currentPoints = player.getPersistentData().getInt("manhwamod.stat_points");
-            if (currentPoints <= 0) return;
+            int currentPoints = player.getPersistentData().getInt(SystemData.POINTS);
+
+            // Check if they have enough points for the requested amount
+            if (currentPoints < amount) return;
 
             String key;
             switch (statName.toLowerCase()) {
                 case "strength":     key = SystemData.STR; break;
                 case "agility":      key = SystemData.SPD; break;
                 case "vitality":     key = SystemData.HP;  break;
-                case "defense":      key = SystemData.DEF; break; // NEW
-                case "intelligence": key = "manhwamod.intelligence"; break;
+                case "defense":      key = SystemData.DEF; break;
+                case "intelligence": key = SystemData.MANA; break;
                 default:             key = "manhwamod." + statName.toLowerCase();
             }
 
+            // Apply Increase based on 'amount'
             int currentVal = player.getPersistentData().getInt(key);
-            player.getPersistentData().putInt(key, currentVal + 1);
-            player.getPersistentData().putInt("manhwamod.stat_points", currentPoints - 1);
+            player.getPersistentData().putInt(key, currentVal + amount);
+            player.getPersistentData().putInt(SystemData.POINTS, currentPoints - amount);
 
-            applyBalancedStats(player, statName.toLowerCase(), currentVal + 1);
+            applyBalancedStats(player, statName.toLowerCase(), currentVal + amount);
 
-            player.level().playSound(null, player.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.5f, 1.0f);
+            // Use a higher pitch for bulk upgrades
+            float pitch = (amount > 1) ? 1.2f : 1.0f;
+            player.level().playSound(null, player.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.5f, pitch);
             SystemData.sync(player);
         });
         return true;
@@ -51,22 +68,15 @@ public class PacketIncreaseStat {
             double baseHealth = 20.0;
             double bonusHealth = newVal * 0.5;
             player.getAttribute(Attributes.MAX_HEALTH).setBaseValue(baseHealth + bonusHealth);
+            // Heal pro-rated amount so the new hearts aren't empty
             if (player.getHealth() < player.getMaxHealth()) player.setHealth(player.getHealth() + 0.5f);
         }
         if (stat.equals("agility")) {
             double baseSpeed = 0.10000000149011612;
-            double bonusSpeed = newVal * 0.0005;
+            double bonusSpeed = newVal * 0.002;
             player.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(baseSpeed * (1.0 + bonusSpeed));
         }
-        if (stat.equals("intelligence")) {
-            int baseMana = 100;
-            int bonusMana = newVal * 2;
-            player.getPersistentData().putInt(SystemData.MANA, baseMana + bonusMana);
-        }
-        // DEFENSE: 0.1 Armor per point. (10 Points = 1 Armor Icon)
         if (stat.equals("defense")) {
-            // Vanilla cap is complicated, but base armor adds up.
-            // 1000 Def = 100 Armor. (Full diamond is 20).
             player.getAttribute(Attributes.ARMOR).setBaseValue(newVal * 0.1);
         }
     }

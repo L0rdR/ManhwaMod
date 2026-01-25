@@ -11,6 +11,12 @@ import java.util.List;
 
 public class HunterPhoneScreen extends Screen {
     private int currentApp = 0;
+    private int multiplier = 1;
+
+    // Scroll Offset for the Skills List
+    private int scrollOffset = 0;
+    private static final int VISIBLE_ROWS = 6;
+
     private final List<Button> statusButtons = new ArrayList<>();
 
     public HunterPhoneScreen() { super(Component.literal("Hunter Phone")); }
@@ -36,21 +42,26 @@ public class HunterPhoneScreen extends Screen {
 
         // --- 2. STATUS APP BUTTONS ---
         if (currentApp == 1) {
-            int points = player.getPersistentData().getInt("manhwamod.stat_points");
+            int points = player.getPersistentData().getInt(SystemData.POINTS);
             if (points > 0) {
                 int startY = cy - 45;
                 int gap = 12;
+                int buttonX = cx + 60;
 
-                // Strength
-                addButtonToGroup(Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat("strength"))).bounds(cx + 20, startY, 15, 10).build());
-                // Agility
-                addButtonToGroup(Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat("agility"))).bounds(cx + 20, startY + gap, 15, 10).build());
-                // Vitality
-                addButtonToGroup(Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat("vitality"))).bounds(cx + 20, startY + gap*2, 15, 10).build());
-                // Intelligence
-                addButtonToGroup(Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat("intelligence"))).bounds(cx + 20, startY + gap*3, 15, 10).build());
-                // Defense (NEW)
-                addButtonToGroup(Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat("defense"))).bounds(cx + 20, startY + gap*4, 15, 10).build());
+                // Multiplier Toggle
+                this.addRenderableWidget(Button.builder(Component.literal("x" + multiplier), b -> {
+                    if (multiplier == 1) multiplier = 10;
+                    else if (multiplier == 10) multiplier = 100;
+                    else multiplier = 1;
+                    b.setMessage(Component.literal("x" + multiplier));
+                }).bounds(cx + 45, startY - 20, 30, 15).build());
+
+                // Stat Buttons
+                addButtonToGroup(Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat("strength", multiplier))).bounds(buttonX, startY, 15, 10).build());
+                addButtonToGroup(Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat("agility", multiplier))).bounds(buttonX, startY + gap, 15, 10).build());
+                addButtonToGroup(Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat("vitality", multiplier))).bounds(buttonX, startY + gap*2, 15, 10).build());
+                addButtonToGroup(Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat("intelligence", multiplier))).bounds(buttonX, startY + gap*3, 15, 10).build());
+                addButtonToGroup(Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat("defense", multiplier))).bounds(buttonX, startY + gap*4, 15, 10).build());
             }
         }
 
@@ -61,8 +72,28 @@ public class HunterPhoneScreen extends Screen {
         }).bounds(cx - 15, cy + 130, 30, 10).build());
     }
 
-    private void switchApp(int appId) { this.currentApp = appId; this.init(); }
+    private void switchApp(int appId) {
+        this.currentApp = appId;
+        this.scrollOffset = 0; // Reset scroll when switching apps
+        this.init();
+    }
+
     private void addButtonToGroup(Button b) { this.addRenderableWidget(b); this.statusButtons.add(b); }
+
+    // --- HANDLE SCROLLING ---
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (currentApp == 2) { // Only scroll in Skills App
+            List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
+            int maxOffset = Math.max(0, skills.size() - VISIBLE_ROWS);
+
+            if (delta < 0) scrollOffset = Math.min(scrollOffset + 1, maxOffset); // Scroll Down
+            else if (delta > 0) scrollOffset = Math.max(scrollOffset - 1, 0);   // Scroll Up
+
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, delta);
+    }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
@@ -72,10 +103,12 @@ public class HunterPhoneScreen extends Screen {
         Player p = this.minecraft.player;
         if (p == null) return;
 
+        // Draw Phone Body
         guiGraphics.fill(cx - 80, cy - 120, cx + 80, cy + 150, 0xFF101010);
         guiGraphics.fill(cx - 75, cy - 110, cx + 75, cy + 120, 0xFF202035);
         guiGraphics.fill(cx - 30, cy - 110, cx + 30, cy - 100, 0xFF000000);
 
+        // Top Bar
         guiGraphics.drawCenteredString(this.font, "12:00", cx, cy - 108, 0xFFFFFFFF);
         guiGraphics.drawString(this.font, "100%", cx + 50, cy - 108, 0xFF00FF00);
 
@@ -97,49 +130,87 @@ public class HunterPhoneScreen extends Screen {
         int str = p.getPersistentData().getInt(SystemData.STR);
         int agi = p.getPersistentData().getInt(SystemData.SPD);
         int vit = p.getPersistentData().getInt(SystemData.HP);
-        int intel = p.getPersistentData().getInt("manhwamod.intelligence");
-        int def = p.getPersistentData().getInt(SystemData.DEF); // NEW
-        int points = p.getPersistentData().getInt("manhwamod.stat_points");
+        int intel = p.getPersistentData().getInt(SystemData.MANA);
+        int def = p.getPersistentData().getInt(SystemData.DEF);
+        int points = p.getPersistentData().getInt(SystemData.POINTS);
 
         guiGraphics.drawCenteredString(this.font, "§bAWAKENED PROFILE", cx, cy - 90, 0xFFFFFF);
         guiGraphics.drawCenteredString(this.font, "§e" + p.getName().getString(), cx, cy - 75, 0xFFFFFF);
         int startY = cy - 40;
         int gap = 12;
+        int textX = cx - 70;
 
-        guiGraphics.drawString(this.font, "Strength:   §c" + str, cx - 60, startY, 0xFFFFFF);
-        guiGraphics.drawString(this.font, "Agility:    §a" + agi, cx - 60, startY + gap, 0xFFFFFF);
-        guiGraphics.drawString(this.font, "Vitality:   §6" + vit, cx - 60, startY + gap*2, 0xFFFFFF);
-        guiGraphics.drawString(this.font, "Intelligence:      §b" + intel, cx - 60, startY + gap*3, 0xFFFFFF);
-        guiGraphics.drawString(this.font, "Defense:    §9" + def, cx - 60, startY + gap*4, 0xFFFFFF); // NEW
+        guiGraphics.drawString(this.font, "Strength:   §c" + str, textX, startY, 0xFFFFFF);
+        guiGraphics.drawString(this.font, "Agility:    §a" + agi, textX, startY + gap, 0xFFFFFF);
+        guiGraphics.drawString(this.font, "Vitality:   §6" + vit, textX, startY + gap*2, 0xFFFFFF);
+        guiGraphics.drawString(this.font, "Intelligence: §b" + intel, textX, startY + gap*3, 0xFFFFFF);
+        guiGraphics.drawString(this.font, "Defense:    §9" + def, textX, startY + gap*4, 0xFFFFFF);
 
         guiGraphics.drawCenteredString(this.font, "§dPoints: " + points, cx, cy + 20, 0xFFFFFF);
     }
 
-    // ... (Keep renderSkillsApp, renderPlaceholderApp, AppIcon class exactly as they were) ...
-    // Since I must provide the full file or exact edits, assume the rest of the file (renderSkillsApp downwards) is unchanged from previous steps.
-    // If you need the full renderSkillsApp again, let me know, otherwise just paste the AppIcon/etc logic here.
+    // --- SCROLLABLE SKILLS LIST (SCALING FIX APPLIED) ---
     private void renderSkillsApp(GuiGraphics guiGraphics, int cx, int cy, Player p, int mouseX, int mouseY) {
-        // (Same as previous turn)
         guiGraphics.drawCenteredString(this.font, "§dACQUIRED ARTS", cx, cy - 90, 0xFFFFFF);
-        int totalSkills = p.getPersistentData().getInt("manhwamod.total_unlocked");
-        if (totalSkills <= 0) {
+
+        List<Integer> skills = SystemData.getUnlockedSkills(p);
+        if (skills.isEmpty()) {
             guiGraphics.drawCenteredString(this.font, "§7No Arts Generated Yet.", cx, cy, 0x555555);
             return;
         }
+
         int startY = cy - 70;
-        for (int i = 0; i < totalSkills; i++) {
-            if (i > 5) break;
+        // Scroll Indicator
+        String scrollInfo = (scrollOffset + 1) + "-" + Math.min(scrollOffset + VISIBLE_ROWS, skills.size()) + " of " + skills.size();
+        guiGraphics.drawCenteredString(this.font, "§8" + scrollInfo, cx, cy + 105, 0xAAAAAA);
+
+        // Render Loop
+        for (int i = 0; i < VISIBLE_ROWS; i++) {
+            // Calculate actual index
+            int dataIndex = i + scrollOffset;
+            if (dataIndex >= skills.size()) break;
+
+            int skillId = skills.get(dataIndex);
             int yPos = startY + (i * 25);
-            String recipe = p.getPersistentData().getString("manhwamod.unlocked_skill_" + i);
+
+            String recipe = p.getPersistentData().getString(SystemData.RECIPE_PREFIX + skillId);
+            int cost = p.getPersistentData().getInt(SystemData.COST_PREFIX + skillId);
             String displayName = SkillEngine.getSkillName(recipe);
-            int cost = p.getPersistentData().getInt("manhwamod.unlocked_cost_" + i);
+            String costText = cost + " MP";
+
             boolean isHovered = (mouseX >= cx - 70 && mouseX <= cx + 70 && mouseY >= yPos && mouseY <= yPos + 22);
+
+            // Draw Background
             guiGraphics.fill(cx - 70, yPos, cx + 70, yPos + 22, isHovered ? 0xFF303050 : 0xFF151520);
             guiGraphics.renderOutline(cx - 70, yPos, 140, 22, 0xFF000000);
-            guiGraphics.drawString(this.font, displayName, cx - 65, yPos + 7, 0xFFFFFFFF);
-            String costText = cost + " MP";
-            guiGraphics.drawString(this.font, costText, cx + 65 - this.font.width(costText), yPos + 7, 0xFF55FFFF);
-            if (isHovered) guiGraphics.drawCenteredString(this.font, "§e[Click to Equip]", cx, cy + 90, 0xFFFFFF);
+
+            // Draw Cost (Right Aligned)
+            int costWidth = this.font.width(costText);
+            guiGraphics.drawString(this.font, costText, cx + 65 - costWidth, yPos + 7, 0xFF55FFFF);
+
+            // --- SCALE NAME TO FIT ---
+            // Available space = RightEdge(65) - CostWidth - LeftEdge(-65) - Padding(5)
+            // Logic: Total 130 width. Name starts at left (-65). Cost is at right (+65).
+            // Safe width = 125 - costWidth.
+            int availableWidth = 125 - costWidth;
+            int nameWidth = this.font.width(displayName);
+
+            float scale = 0.8f; // Default small size for style
+            if (nameWidth * scale > availableWidth) {
+                // If even at 0.8x it's too big, shrink it further
+                scale = (float) availableWidth / nameWidth;
+            }
+
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(cx - 65, yPos + 7, 0); // Move to start position
+            guiGraphics.pose().scale(scale, scale, 1.0f);       // Apply shrinking
+            guiGraphics.drawString(this.font, displayName, 0, 0, 0xFFFFFFFF);
+            guiGraphics.pose().popPose();
+            // -------------------------
+
+            if (isHovered) {
+                guiGraphics.drawCenteredString(this.font, "§e[Click to Equip]", cx, cy + 90, 0xFFFFFF);
+            }
         }
     }
 
@@ -170,18 +241,31 @@ public class HunterPhoneScreen extends Screen {
 
     @Override public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (super.mouseClicked(mouseX, mouseY, button)) return true;
+
         if (currentApp == 2) {
             int cx = this.width / 2;
             int cy = this.height / 2;
             int startY = cy - 70;
-            int totalSkills = this.minecraft.player.getPersistentData().getInt("manhwamod.total_unlocked");
-            for (int i = 0; i < totalSkills; i++) {
-                if (i > 5) break;
+
+            List<Integer> skills = SystemData.getUnlockedSkills(this.minecraft.player);
+
+            for (int i = 0; i < VISIBLE_ROWS; i++) {
                 int yPos = startY + (i * 25);
                 if (mouseX >= cx - 70 && mouseX <= cx + 70 && mouseY >= yPos && mouseY <= yPos + 22) {
-                    Messages.sendToServer(new PacketEquipSkill(i, 0));
-                    this.minecraft.player.displayClientMessage(Component.literal("§aEquipped to Slot 1!"), true);
-                    return true;
+
+                    int dataIndex = i + scrollOffset;
+
+                    if (dataIndex < skills.size()) {
+                        int skillId = skills.get(dataIndex);
+                        Messages.sendToServer(new PacketEquipSkill(0, skillId));
+
+                        this.minecraft.player.displayClientMessage(Component.literal("§aEquipped to Slot 1!"), true);
+
+                        // FIXED: Added .get() to unwrap the Reference<SoundEvent>
+                        this.minecraft.player.playSound(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK.get(), 1.0f, 1.0f);
+
+                        return true;
+                    }
                 }
             }
         }

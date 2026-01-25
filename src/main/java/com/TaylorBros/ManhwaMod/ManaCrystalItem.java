@@ -24,11 +24,6 @@ public class ManaCrystalItem extends Item {
                 boolean isSystemPlayer = player.getPersistentData().getBoolean("manhwamod.is_system_player");
 
                 // Business Logic: Route to the correct UI based on User Tier
-                if (isSystemPlayer) {
-                    Minecraft.getInstance().setScreen(new StatusScreen());
-                } else {
-                    Minecraft.getInstance().setScreen(new AwakenedStatusScreen());
-                }
             } else {
                 player.sendSystemMessage(Component.literal("§c[!] The crystal remains dim. You are not awakened."));
             }

@@ -41,7 +41,7 @@ public class SystemCommands {
                                 })
                         )
 
-                        // 3. WIPE PLAYER
+                        // 3. WIPE PLAYER (FIXED: Clears correct points)
                         .then(Commands.literal("wipe_player")
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
@@ -66,10 +66,10 @@ public class SystemCommands {
                                     data.putInt(SystemData.SPD, 10);
                                     data.putInt(SystemData.MANA, 10);
 
-                                    // FIXED: Reset the correct variable used by Phone UI
-                                    data.putInt("manhwamod.stat_points", 0);
-                                    // Also clear the old one just in case
+                                    // FIXED: Reset SystemData.POINTS
                                     data.putInt(SystemData.POINTS, 0);
+                                    // Remove old deprecated tag just in case
+                                    data.remove("manhwamod.stat_points");
 
                                     player.getPersistentData().remove("manhwamod.quest_date");
                                     player.getPersistentData().remove("manhwamod.quest_kills");
@@ -95,16 +95,16 @@ public class SystemCommands {
                                 )
                         )
 
-                        // 5. ADD POINTS (FIXED)
+                        // 5. ADD POINTS (FIXED: Uses SystemData.POINTS)
                         .then(Commands.literal("add_points")
                                 .then(Commands.argument("amount", IntegerArgumentType.integer(1, 9999))
                                         .executes(context -> {
                                             ServerPlayer player = context.getSource().getPlayerOrException();
                                             int amount = IntegerArgumentType.getInteger(context, "amount");
 
-                                            // FIXED: Use "manhwamod.stat_points" to match Phone UI
-                                            int currentPoints = player.getPersistentData().getInt("manhwamod.stat_points");
-                                            player.getPersistentData().putInt("manhwamod.stat_points", currentPoints + amount);
+                                            // FIXED: Use the constant, do not type the string manually
+                                            int currentPoints = player.getPersistentData().getInt(SystemData.POINTS);
+                                            player.getPersistentData().putInt(SystemData.POINTS, currentPoints + amount);
 
                                             SystemData.sync(player);
                                             player.sendSystemMessage(Component.literal("§b§l[ADMIN] §fAdded §e" + amount + " §fstat points."));
@@ -118,7 +118,7 @@ public class SystemCommands {
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
                                     player.getPersistentData().putBoolean("manhwamod.is_system_player", true);
-
+                                    // Clean quest data
                                     player.getPersistentData().remove("manhwamod.quest_date");
                                     player.getPersistentData().remove("manhwamod.quest_kills");
                                     player.getPersistentData().remove("manhwamod.quest_dist");
@@ -126,7 +126,6 @@ public class SystemCommands {
 
                                     DailyQuestData.checkAndReset(player);
                                     SystemData.sync(player);
-
                                     player.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fWelcome, Player."));
                                     return 1;
                                 })
