@@ -21,27 +21,36 @@ public class SystemKeyItem extends Item {
         ItemStack stack = player.getItemInHand(hand);
 
         if (!level.isClientSide) {
-            // 1. Business Logic: Check if already awakened
+            // 1. Check if already awakened
             if (SystemData.isAwakened(player)) {
                 player.sendSystemMessage(Component.literal("§c[!] You have already been authenticated by the System."));
                 return InteractionResultHolder.fail(stack);
             }
 
-            // 2. Core Awakening & Roll
+            // 2. Awaken
             SystemData.saveAwakening(player, true);
-            boolean isProtagonist = level.random.nextFloat() < 0.10f; // 10% chance
+
+            // 10% Chance to be the "Protagonist" (System Player)
+            boolean isProtagonist = level.random.nextFloat() < 0.10f;
             player.getPersistentData().putBoolean("manhwamod.is_system_player", isProtagonist);
 
-            // 3. Initialize Stats
-            player.getPersistentData().putInt("manhwamod.level", 1);
-            player.getPersistentData().putInt("manhwamod.current_mana", 20);
+            // Ensure base stats exist
+            if (!player.getPersistentData().contains(SystemData.POINTS)) {
+                player.getPersistentData().putInt(SystemData.POINTS, 5);
+                player.getPersistentData().putInt(SystemData.STR, 10);
+                player.getPersistentData().putInt(SystemData.HP, 10);
+                player.getPersistentData().putInt(SystemData.MANA, 10);
+                player.getPersistentData().putInt(SystemData.CURRENT_MANA, 100);
+                player.getPersistentData().putInt(SystemData.SPD, 10);
+                player.getPersistentData().putInt(SystemData.DEF, 10);
+            }
 
-            // CRITICAL: Sync data so the G-key works immediately
+            // Sync initial data
             SystemData.sync(player);
 
-            // 4. Feedback Logic
+            // 3. Feedback Logic
             if (isProtagonist) {
-                // Trigger the Cinematic Animation via a Packet
+                // Protagonist Animation & Message
                 Messages.sendToPlayer(new PacketOpenBootAnimation(), (ServerPlayer) player);
 
                 level.playSound(null, player.getX(), player.getY(), player.getZ(),
@@ -53,7 +62,10 @@ public class SystemKeyItem extends Item {
                 player.sendSystemMessage(Component.literal("§7(Press §b'G' §7to view your Status)"));
                 player.sendSystemMessage(Component.literal("§e------------------------------------------"));
             } else {
+                // Regular Hunter Message
                 player.sendSystemMessage(Component.literal("§6§l[AWAKENING] §fSuccess. Rank: §eE-Rank§f."));
+                player.sendSystemMessage(Component.literal("§7(Press §b'G' §7to access your Hunter Device)"));
+
                 level.playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 0.8f, 1.2f);
             }
@@ -62,6 +74,6 @@ public class SystemKeyItem extends Item {
                 stack.shrink(1);
             }
         }
-        return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
+        return InteractionResultHolder.consume(stack);
     }
 }
