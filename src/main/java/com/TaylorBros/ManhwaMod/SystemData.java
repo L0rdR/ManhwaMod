@@ -15,8 +15,6 @@ public class SystemData {
     public static final String BANK = "manhwamod.unlocked_skills";
 
     public static final String SLOT_PREFIX = "manhwamod.slot_";
-
-    // DEFINITIVE KEYS
     public static final String STR = "manhwamod.strength";
     public static final String HP = "manhwamod.health_stat";
     public static final String DEF = "manhwamod.defense";
@@ -31,10 +29,7 @@ public class SystemData {
 
     // --- ACCESSORS ---
     public static int getStrength(Player player) { return player.getPersistentData().getInt(STR); }
-    public static int getHealthStat(Player player) {
-        int val = player.getPersistentData().getInt(HP);
-        return val == 0 ? 20 : val;
-    }
+    public static int getHealthStat(Player player) { int val = player.getPersistentData().getInt(HP); return val == 0 ? 20 : val; }
     public static int getSpeed(Player player) { return player.getPersistentData().getInt(SPD); }
     public static int getDefense(Player player) { return player.getPersistentData().getInt(DEF); }
     public static int getPoints(Player player) { return player.getPersistentData().getInt(POINTS); }
@@ -42,26 +37,18 @@ public class SystemData {
     public static int getMana(Player player) { return player.getPersistentData().getInt(MANA); }
     public static int getLevel(Player player) { return player.getPersistentData().getInt(LEVEL); }
     public static int getXP(Player player) { return player.getPersistentData().getInt(XP); }
-
     public static boolean isSystemPlayer(Player player) { return player.getPersistentData().getBoolean(IS_SYSTEM); }
     public static boolean isAwakened(Player player) { return isSystemPlayer(player) || player.getPersistentData().getBoolean(AWAKENED); }
 
-    public static void savePoints(Player player, int val) {
-        player.getPersistentData().putInt(POINTS, val);
-        sync(player);
-    }
-    public static void saveCurrentMana(Player player, int val) {
-        player.getPersistentData().putInt(CURRENT_MANA, val);
-        sync(player);
-    }
+    public static void savePoints(Player player, int val) { player.getPersistentData().putInt(POINTS, val); sync(player); }
+    public static void saveCurrentMana(Player player, int val) { player.getPersistentData().putInt(CURRENT_MANA, val); sync(player); }
 
-    // --- SYNCING ---
+    // --- SYNCING (FIXED) ---
     public static void sync(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
             CompoundTag nbt = player.getPersistentData();
             CompoundTag syncData = new CompoundTag();
 
-            // 1. Sync Bank & Stats
             syncData.putString(BANK, nbt.getString(BANK));
             syncData.putInt(STR, nbt.getInt(STR));
             syncData.putInt(HP, nbt.getInt(HP));
@@ -75,23 +62,23 @@ public class SystemData {
             syncData.putInt(CURRENT_MANA, nbt.getInt(CURRENT_MANA));
             syncData.putInt(XP, nbt.getInt(XP));
 
-            // 2. Sync Slots
             for (int i = 0; i < 5; i++) {
                 String key = SLOT_PREFIX + i;
                 syncData.putInt(key, nbt.getInt(key));
             }
 
-            // 3. Sync Recipes AND COSTS
+            // Sync Recipes AND COSTS
             List<Integer> unlocked = getUnlockedSkills(player);
             for (int id : unlocked) {
                 String rKey = RECIPE_PREFIX + id;
                 syncData.putString(rKey, nbt.getString(rKey));
 
+                // Fixed: Sync the cost!
                 String cKey = COST_PREFIX + id;
                 syncData.putInt(cKey, nbt.getInt(cKey));
             }
 
-            // 4. Sync Cooldowns
+            // Sync Cooldowns
             for (int i = 0; i < 5; i++) {
                 String lastUseKey = LAST_USE_PREFIX + i;
                 String cooldownKey = COOLDOWN_PREFIX + i;
@@ -103,9 +90,6 @@ public class SystemData {
         }
     }
 
-    // --- HELPERS ---
-
-    // RESTORED: This is the method your error was looking for
     public static String getSkillRecipe(Player player, int slotIndex) {
         int skillId = player.getPersistentData().getInt(SLOT_PREFIX + slotIndex);
         if (skillId == 0) return "";
@@ -135,10 +119,7 @@ public class SystemData {
         sync(player);
     }
 
-    public static void saveAwakening(Player player, boolean val) {
-        player.getPersistentData().putBoolean(AWAKENED, val);
-        sync(player);
-    }
+    public static void saveAwakening(Player player, boolean val) { player.getPersistentData().putBoolean(AWAKENED, val); sync(player); }
     public static void saveStrength(Player player, int val) { player.getPersistentData().putInt(STR, val); sync(player); }
     public static void saveHealthStat(Player player, int val) { player.getPersistentData().putInt(HP, val); sync(player); }
     public static void saveDefense(Player player, int val) { player.getPersistentData().putInt(DEF, val); sync(player); }

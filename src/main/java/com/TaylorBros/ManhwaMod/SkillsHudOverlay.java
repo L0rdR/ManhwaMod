@@ -11,41 +11,38 @@ public class SkillsHudOverlay {
 
         var font = mc.font;
         int x = 10;
-        int y = height / 2 - 50;
+        int y = height / 2 - 40; // Centered left
+
+        // 1. Draw Container Background (Panel for all 5 skills)
+        // x, y, width, height, color (0x66000000 is semi-transparent black)
+        guiGraphics.fill(x - 5, y - 5, x + 130, y + 105, 0x66000000);
+        // 2. Draw Cyan Decoration Line on Left
+        guiGraphics.fill(x - 5, y - 5, x - 3, y + 105, 0xFF00AAFF);
 
         for (int i = 0; i < 5; i++) {
+            int skillId = mc.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + i);
             String recipe = SystemData.getSkillRecipe(mc.player, i);
-            boolean isEmpty = recipe == null || recipe.isEmpty() || recipe.equals("0");
-            int rowY = y + (i * 20); // Spaced out slightly more for the bars
-
-            // 1. Draw Translucent Background (Hex: 0x44000000 -> 44 is Alpha/Transparency)
-            guiGraphics.fill(x - 2, rowY - 2, x + 120, rowY + 14, 0x44000000);
+            boolean isEmpty = skillId <= 0 || recipe.isEmpty();
+            int rowY = y + (i * 20);
 
             if (!isEmpty) {
-                // Get Skill ID from the slot to find its specific cooldown
-                int skillId = mc.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + i);
+                long lastUse = mc.player.getPersistentData().getLong(SystemData.LAST_USE_PREFIX + i);
+                int duration = mc.player.getPersistentData().getInt(SystemData.COOLDOWN_PREFIX + i);
+                long timeLeft = duration - (mc.level.getGameTime() - lastUse);
 
-                // Read the synced values
-                long unlockTime = mc.player.getPersistentData().getLong("manhwamod.cd_timer_" + skillId);
-                int totalDuration = mc.player.getPersistentData().getInt("manhwamod.cd_duration_" + skillId);
-                long timeLeft = unlockTime - mc.level.getGameTime();
-
-                // 1. Flash Effect (If cooldown just finished or is active)
-                if (timeLeft > 0) {
-                    // 2. Cooldown Bar (Yellow bar shrinking)
-                    float pct = (float) timeLeft / totalDuration;
-                    int barWidth = (int) (pct * 122); // 122 is the max width
-                    guiGraphics.fill(x - 2, rowY + 12, x - 2 + barWidth, rowY + 14, 0xFFFFD700);
+                // Cooldown Bar (Yellow)
+                if (timeLeft > 0 && duration > 0) {
+                    float pct = (float) timeLeft / duration;
+                    int barWidth = (int) (pct * 125);
+                    guiGraphics.fill(x, rowY + 12, x + barWidth, rowY + 13, 0xFFFFD700);
+                    guiGraphics.drawString(font, "§7" + (i + 1) + ". §cCooldown...", x, rowY, 0xFFFFFF);
+                } else {
+                    // Ready
+                    String name = SkillEngine.getSkillName(recipe);
+                    guiGraphics.drawString(font, "§b" + (i + 1) + ". §f" + name, x, rowY, 0xFFFFFF);
                 }
-                else if (timeLeft > -5 && timeLeft <= 0) {
-                    // Flash White for 5 ticks when ready
-                    guiGraphics.fill(x - 2, rowY - 2, x + 120, rowY + 14, 0x88FFFFFF);
-                }
-
-                String displayName = "§b" + (i + 1) + ": " + SkillEngine.getSkillName(recipe);
-                guiGraphics.drawString(font, displayName, x, rowY, 0xFFFFFF);
             } else {
-                guiGraphics.drawString(font, "§8" + (i + 1) + ": [ EMPTY ]", x, rowY, 0xFFFFFF);
+                guiGraphics.drawString(font, "§8" + (i + 1) + ". [ --- ]", x, rowY, 0xFFFFFF);
             }
         }
     };

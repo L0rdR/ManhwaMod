@@ -10,7 +10,7 @@ import java.util.function.Supplier;
 
 public class PacketIncreaseStat {
     private final String statName;
-    private final int amount; // NEW: Stores the multiplier (1, 10, or 100)
+    private final int amount; // Multiplier
 
     public PacketIncreaseStat(String statName, int amount) {
         this.statName = statName;
@@ -19,12 +19,12 @@ public class PacketIncreaseStat {
 
     public PacketIncreaseStat(FriendlyByteBuf buf) {
         this.statName = buf.readUtf();
-        this.amount = buf.readInt(); // Read int
+        this.amount = buf.readInt();
     }
 
     public void toBytes(FriendlyByteBuf buf) {
         buf.writeUtf(statName);
-        buf.writeInt(amount); // Write int
+        buf.writeInt(amount);
     }
 
     public boolean handle(Supplier<NetworkEvent.Context> supplier) {
@@ -34,8 +34,6 @@ public class PacketIncreaseStat {
             if (player == null) return;
 
             int currentPoints = player.getPersistentData().getInt(SystemData.POINTS);
-
-            // Check if they have enough points for the requested amount
             if (currentPoints < amount) return;
 
             String key;
@@ -48,14 +46,12 @@ public class PacketIncreaseStat {
                 default:             key = "manhwamod." + statName.toLowerCase();
             }
 
-            // Apply Increase based on 'amount'
             int currentVal = player.getPersistentData().getInt(key);
             player.getPersistentData().putInt(key, currentVal + amount);
             player.getPersistentData().putInt(SystemData.POINTS, currentPoints - amount);
 
             applyBalancedStats(player, statName.toLowerCase(), currentVal + amount);
 
-            // Use a higher pitch for bulk upgrades
             float pitch = (amount > 1) ? 1.2f : 1.0f;
             player.level().playSound(null, player.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.5f, pitch);
             SystemData.sync(player);
@@ -68,7 +64,6 @@ public class PacketIncreaseStat {
             double baseHealth = 20.0;
             double bonusHealth = newVal * 0.5;
             player.getAttribute(Attributes.MAX_HEALTH).setBaseValue(baseHealth + bonusHealth);
-            // Heal pro-rated amount so the new hearts aren't empty
             if (player.getHealth() < player.getMaxHealth()) player.setHealth(player.getHealth() + 0.5f);
         }
         if (stat.equals("agility")) {

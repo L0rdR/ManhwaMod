@@ -34,9 +34,6 @@ public class SystemEvents {
     }
 
     @SubscribeEvent
-    public static void onPlayerLoad(PlayerEvent.LoadFromFile event) { }
-
-    @SubscribeEvent
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             DailyQuestData.checkAndReset(player);
@@ -81,12 +78,12 @@ public class SystemEvents {
                     SystemData.saveCurrentMana(sPlayer, maxCap);
                 }
 
-                // 2. SKILL GENERATION (Restored Logic)
-                int expectedSkills = manaStat / 50;
+                // 2. SKILL GENERATION (FIXED: Threshold 20)
+                int expectedSkills = manaStat / 50; // Changed from 50 to 20
                 List<Integer> unlockedSkills = SystemData.getUnlockedSkills(sPlayer);
 
-                if (unlockedSkills.size() < expectedSkills) {
-                    // Generate Unique ID that isn't already owned
+                // Use WHILE loop to catch up if multiple skills are due
+                while (unlockedSkills.size() < expectedSkills) {
                     int newId = 1000 + random.nextInt(90000);
                     while (unlockedSkills.contains(newId)) newId = 1000 + random.nextInt(90000);
 
@@ -96,9 +93,12 @@ public class SystemEvents {
                     SystemData.unlockSkill(sPlayer, newId, newSkill, cost);
                     String name = SkillEngine.getSkillName(newSkill);
                     sPlayer.displayClientMessage(Component.literal("§b[System] §fAwakening Reached! New Art: §6" + name), false);
+
+                    // Update local list to prevent infinite loop
+                    unlockedSkills.add(newId);
                 }
 
-                // 3. UPDATE RANK (Was previously unutilized)
+                // 3. UPDATE RANK
                 updatePlayerRank(sPlayer);
             }
 
@@ -113,16 +113,12 @@ public class SystemEvents {
         }
     }
 
-    // --- STRENGTH DAMAGE SCALING (Restored) ---
     @SubscribeEvent
     public static void onLivingHurt(LivingHurtEvent event) {
         if (event.getSource().getEntity() instanceof ServerPlayer player) {
-            // Ignore magic (Skills use Int)
             if (event.getSource().isIndirect() || "magic".equals(event.getSource().getMsgId())) return;
-
             int strength = SystemData.getStrength(player);
             if (strength > 10) {
-                // +1% Damage per point
                 float damageMulti = 1.0f + (strength * 0.01f);
                 event.setAmount(event.getAmount() * damageMulti);
             }
@@ -131,10 +127,8 @@ public class SystemEvents {
 
     public static void executeDash(Player player) {
         if (player.level().isClientSide || !(player instanceof ServerPlayer sPlayer)) return;
-
         int speedStat = SystemData.getSpeed(player);
         int currentMana = SystemData.getCurrentMana(player);
-        // Buffed Distance: Base 5 + (0.2 per Agi)
         double distanceGoal = Math.min(30.0, 5.0 + (speedStat * 0.2));
         int dashCost = 15;
 
