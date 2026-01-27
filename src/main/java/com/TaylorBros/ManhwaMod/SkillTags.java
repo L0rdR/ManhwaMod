@@ -13,7 +13,7 @@ public class SkillTags {
         BARRAGE, BARRAGE_PUNCH,           // Tier 7: Ultimates
         SLASH_BARRAGE, RAIN, AOE          // Tier 7: Ultimates
     }
-
+  
     // These determine the base particle and main sound
     public enum Element {
         FIRE,
