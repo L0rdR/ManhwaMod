@@ -21,25 +21,33 @@ public class SkillsHudOverlay {
 
         for (int i = 0; i < 5; i++) {
             int skillId = mc.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + i);
-            String recipe = SystemData.getSkillRecipe(mc.player, i);
-            boolean isEmpty = skillId <= 0 || recipe.isEmpty();
+            String fullData = SystemData.getSkillRecipe(mc.player, i); // This now contains "RECIPE|NAME"
+            boolean isEmpty = skillId <= 0 || fullData.isEmpty();
             int rowY = y + (i * 20);
 
             if (!isEmpty) {
+                // --- NEW LOGIC TO UNPACK THE NAME ---
+                String displayName;
+                if (fullData.contains("|")) {
+                    String[] split = fullData.split("\\|");
+                    displayName = split[1]; // Grabs the saved "Infernal Strike..."
+                } else {
+                    // Fallback for skills generated before the name system
+                    displayName = SkillEngine.getSkillName(fullData);
+                }
+
                 long lastUse = mc.player.getPersistentData().getLong(SystemData.LAST_USE_PREFIX + i);
                 int duration = mc.player.getPersistentData().getInt(SystemData.COOLDOWN_PREFIX + i);
                 long timeLeft = duration - (mc.level.getGameTime() - lastUse);
 
-                // Cooldown Bar (Yellow)
                 if (timeLeft > 0 && duration > 0) {
                     float pct = (float) timeLeft / duration;
                     int barWidth = (int) (pct * 125);
                     guiGraphics.fill(x, rowY + 12, x + barWidth, rowY + 13, 0xFFFFD700);
                     guiGraphics.drawString(font, "§7" + (i + 1) + ". §cCooldown...", x, rowY, 0xFFFFFF);
                 } else {
-                    // Ready
-                    String name = SkillEngine.getSkillName(recipe);
-                    guiGraphics.drawString(font, "§b" + (i + 1) + ". §f" + name, x, rowY, 0xFFFFFF);
+                    // Display the saved name instead of re-generating it
+                    guiGraphics.drawString(font, "§b" + (i + 1) + ". §f" + displayName, x, rowY, 0xFFFFFF);
                 }
             } else {
                 guiGraphics.drawString(font, "§8" + (i + 1) + ". [ --- ]", x, rowY, 0xFFFFFF);

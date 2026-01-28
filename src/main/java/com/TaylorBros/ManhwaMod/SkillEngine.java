@@ -23,8 +23,10 @@ public class SkillEngine {
     public static int execute(ServerPlayer player, int skillId, String recipe, int cost, int intelligence) {
         if (recipe == null || recipe.isEmpty()) return 0;
 
+        String cleanRecipe = recipe.contains("|") ? recipe.split("\\|")[0] : recipe;
+
         try {
-            String[] parts = recipe.split(":");
+            String[] parts = cleanRecipe.split(":");
             if (parts.length < 3) return 0;
 
             SkillTags.Shape shape = SkillTags.Shape.valueOf(parts[0].toUpperCase().trim().replace(" ", "_"));
@@ -462,7 +464,14 @@ public class SkillEngine {
 
     public static String getSkillName(String recipe) {
         if (recipe == null || recipe.isEmpty() || recipe.equals("0")) return "None";
+
+        // If the recipe already has a cool name attached, use it!
+        if (recipe.contains("|")) {
+            return recipe.split("\\|")[1];
+        }
+
         try {
+            // Fallback for old skills
             String[] parts = recipe.split(":");
             return formatName(parts[2]) + " " + formatName(parts[1]) + " " + formatName(parts[0]);
         } catch (Exception e) { return "Unnamed Art"; }

@@ -90,14 +90,25 @@ public class SystemEvents {
                 int expectedSkills = manaStat / 50;
                 List<Integer> unlockedSkills = SystemData.getUnlockedSkills(sPlayer);
 
+                // 2. Skill Milestone Logic (Update this part)
                 while (unlockedSkills.size() < expectedSkills) {
                     int newId = 1000 + random.nextInt(90000);
-                    String newSkill = generateRandomSkill(sPlayer);
+                    String recipe = generateRandomSkill(sPlayer);
                     int cost = 20 + random.nextInt(30) + (manaStat / 2);
 
-                    SystemData.unlockSkill(sPlayer, newId, newSkill, cost);
-                    String name = SkillEngine.getSkillName(newSkill);
-                    sPlayer.displayClientMessage(Component.literal("§b[System] §fNew Art: §6" + name), false);
+                    // --- DYNAMIC NAMING ---
+                    String[] parts = recipe.split(":");
+                    String elementWord = SkillNamingEngine.getElementName(parts[1]);
+                    String shapeWord = SkillNamingEngine.getShapeName(parts[0]);
+                    String modWord = SkillNamingEngine.getModifierName(parts[2]);
+
+                    String coolName = elementWord + " " + shapeWord + " " + modWord;
+
+                    // IMPORTANT: We save the RECIPE and the NAME together separated by |
+                    // This locks the name so it never re-rolls again
+                    SystemData.unlockSkill(sPlayer, newId, recipe + "|" + coolName.trim(), cost);
+
+                    sPlayer.displayClientMessage(Component.literal("§b[System] §fNew Art: §6§l" + coolName.trim()), false);
                     unlockedSkills.add(newId);
                 }
 
@@ -191,4 +202,5 @@ public class SystemEvents {
         }
         return shape.name() + ":" + element.name() + ":" + modifier.name();
     }
+
 }

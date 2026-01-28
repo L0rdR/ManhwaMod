@@ -91,10 +91,18 @@ public class SystemData {
         }
     }
 
-    public static String getSkillRecipe(Player player, int slotIndex) {
-        int skillId = player.getPersistentData().getInt(SLOT_PREFIX + slotIndex);
-        if (skillId == 0) return "";
-        return player.getPersistentData().getString(RECIPE_PREFIX + skillId);
+    public static String getSkillRecipe(Player player, int slot) {
+        int skillId = player.getPersistentData().getInt(SLOT_PREFIX + slot);
+        if (skillId <= 0) return "";
+
+        String rawData = player.getPersistentData().getString(RECIPE_PREFIX + skillId);
+
+        // If it contains the name, only return the RECIPE part for the Skill Engine to use
+        if (rawData.contains("|")) {
+            return rawData.split("\\|")[0];
+        }
+
+        return rawData;
     }
 
     public static List<Integer> getUnlockedSkills(Player player) {

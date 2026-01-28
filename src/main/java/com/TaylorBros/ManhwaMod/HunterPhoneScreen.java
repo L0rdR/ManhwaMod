@@ -213,9 +213,20 @@ public class HunterPhoneScreen extends Screen {
             int skillId = skills.get(dataIndex);
             int yPos = startY + (i * 25);
 
-            String recipe = p.getPersistentData().getString(SystemData.RECIPE_PREFIX + skillId);
+            // 1. Grab the full raw string (contains "RECIPE|NAME")
+            String fullData = p.getPersistentData().getString(SystemData.RECIPE_PREFIX + skillId);
             int cost = p.getPersistentData().getInt(SystemData.COST_PREFIX + skillId);
-            String displayName = SkillEngine.getSkillName(recipe);
+
+            // 2. UNPACK the saved name
+            String displayName;
+            if (fullData.contains("|")) {
+                String[] split = fullData.split("\\|");
+                displayName = split[1]; // Use the saved "Infernal Strike..."
+            } else {
+                // Fallback for old skills generated before the fix
+                displayName = SkillEngine.getSkillName(fullData);
+            }
+
             String costText = cost + " MP";
 
             boolean isHovered = (mouseX >= cx - 75 && mouseX <= cx + 75 && mouseY >= yPos && mouseY <= yPos + 22);
@@ -232,7 +243,7 @@ public class HunterPhoneScreen extends Screen {
             int costWidth = this.font.width(costText);
             guiGraphics.drawString(this.font, costText, cx + 70 - costWidth, yPos + 7, COL_TEXT_GLOW);
 
-            // Text Scaling
+            // Text Scaling (to prevent name overlapping cost)
             int availableWidth = 135 - costWidth;
             int nameWidth = this.font.width(displayName);
             float scale = 0.8f;
@@ -245,7 +256,7 @@ public class HunterPhoneScreen extends Screen {
             guiGraphics.pose().popPose();
         }
 
-        // --- EQUIP SLOTS (Bottom of Screen) ---
+        // --- EQUIP SLOTS (Rest of your existing code continues here...) ---
         int slotY = cy + 70;
         int slotSize = 20;
         int startX = cx - 70;
@@ -258,7 +269,7 @@ public class HunterPhoneScreen extends Screen {
             boolean hoverSlot = (mouseX >= slotX && mouseX <= slotX + slotSize && mouseY >= slotY && mouseY <= slotY + slotSize);
 
             int color = hoverSlot ? COL_BTN_HOVER : COL_BTN_NORMAL;
-            if (selectedSkillId != -1 && hoverSlot) color = 0xFF00AA00; // Highlight green if assigning
+            if (selectedSkillId != -1 && hoverSlot) color = 0xFF00AA00;
 
             guiGraphics.fill(slotX, slotY, slotX + slotSize, slotY + slotSize, color);
             guiGraphics.renderOutline(slotX, slotY, slotSize, slotSize, COL_CASE_BORDER);
