@@ -163,6 +163,8 @@ public class HunterPhoneScreen extends Screen {
         int def = p.getPersistentData().getInt(SystemData.DEF);
         int points = p.getPersistentData().getInt(SystemData.POINTS);
 
+        Affinity aff = SystemData.getAffinity(p);
+
         // Fetch Rank, default to "E" if missing
         String rank = p.getPersistentData().getString("manhwamod.rank");
         if (rank.isEmpty()) rank = "E";
@@ -170,6 +172,7 @@ public class HunterPhoneScreen extends Screen {
         // Header
         guiGraphics.drawCenteredString(this.font, "§e" + p.getName().getString(), cx, cy - 80, COL_TEXT_WHITE);
         guiGraphics.drawCenteredString(this.font, "§7Rank: §b" + rank, cx, cy - 70, COL_TEXT_WHITE);
+        guiGraphics.drawCenteredString(this.font, "Affinity: " + aff.color + aff.name, cx, cy - 62, 0xFFFFFFFF);
 
         // Stats
         int startY = cy - 40;

@@ -3,6 +3,7 @@ package com.TaylorBros.ManhwaMod;
 import net.minecraft.ChatFormatting;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList;
 
 public enum Affinity {
     NONE("None", ChatFormatting.GRAY),
@@ -29,8 +30,7 @@ public enum Affinity {
     }
 
     /**
-     * Logic: This list defines which elements this specific affinity is STRONG against.
-     * When you attack these elements, you deal 10% MORE damage.
+     * OFFENSE: Elements you deal +10% damage TO.
      */
     public List<Affinity> getStrengths() {
         return switch (this) {
@@ -47,14 +47,29 @@ public enum Affinity {
             case SHADOW -> Arrays.asList(LIGHT, FORCE);
             case ACID -> Arrays.asList(LAVA, FIRE);
             case POISON -> Arrays.asList(WIND, LIGHT);
-            default -> Arrays.asList(); // NONE has no strengths
+            default -> Arrays.asList();
         };
     }
 
     /**
-     * Helper method to check if this element is weak against another.
+     * DEFENSE: Elements that deal +10% damage TO YOU.
+     * This logic finds every element that has YOU in its strength list.
      */
-    public boolean isWeakTo(Affinity attacker) {
-        return attacker.getStrengths().contains(this);
+    public List<Affinity> getWeaknesses() {
+        List<Affinity> weaknesses = new ArrayList<>();
+        for (Affinity other : Affinity.values()) {
+            if (other.getStrengths().contains(this)) {
+                weaknesses.add(other);
+            }
+        }
+        return weaknesses;
+    }
+
+    /**
+     * 10% RESISTANCE: Does this affinity resist the incoming element?
+     * Logic: You resist your own element.
+     */
+    public boolean resists(Affinity incomingElement) {
+        return this == incomingElement;
     }
 }

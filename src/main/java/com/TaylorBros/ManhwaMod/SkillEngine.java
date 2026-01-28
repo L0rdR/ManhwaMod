@@ -3,6 +3,7 @@ package com.TaylorBros.ManhwaMod;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -13,8 +14,11 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.server.TickTask;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.network.chat.Component;
 
 public class SkillEngine {
+
+    public static SkillTags.Element currentSkillElement = SkillTags.Element.NONE;
 
     public static int execute(ServerPlayer player, int skillId, String recipe, int cost, int intelligence) {
         if (recipe == null || recipe.isEmpty()) return 0;
@@ -71,11 +75,21 @@ public class SkillEngine {
     private static void damageArea(ServerPlayer player, Vec3 pos, double range, float baseDmg, SkillTags.Modifier mod, SkillTags.Element element, int manaStat) {
         float damageMulti = 1.0f + (manaStat * 0.005f);
 
+        // Tell the "Referee" (Combat Event) what element we are using right now
+        currentSkillElement = element;
+
         player.level().getEntitiesOfClass(LivingEntity.class, new AABB(pos, pos).inflate(range), e -> e != player).forEach(target -> {
+
+            // FIXED: Using player.damageSources().magic() directly
+            // This avoids the .source() and .level() calls that were likely causing the red text
             target.hurt(player.damageSources().magic(), baseDmg * damageMulti);
+
             applyElementEffect(target, element, player, baseDmg, manaStat);
             applyModifier(target, mod, player);
         });
+
+        // Reset the bridge to NONE so regular sword hits don't accidentally get elemental buffs
+        currentSkillElement = SkillTags.Element.NONE;
     }
 
     // --- SHAPE IMPLEMENTATIONS ---
@@ -468,5 +482,23 @@ public class SkillEngine {
             case BARRAGE_PUNCH, SLASH_BARRAGE, RAIN, AOE -> 140;
             default -> 40;
         };
+    }
+
+    public static SkillTags.Element rollWeightedElement(ServerPlayer player) {
+        Affinity playerAff = SystemData.getAffinity(player);
+
+        // 1. Roll for the 65% "Soul Resonance"
+        if (player.getRandom().nextFloat() < 0.65f && playerAff != Affinity.NONE) {
+            try {
+                // Convert the Affinity name (e.g., "FIRE") to the Skill Element
+                return SkillTags.Element.valueOf(playerAff.name());
+            } catch (Exception e) {
+                // Fallback if names don't match perfectly
+                return SkillTags.Element.values()[player.getRandom().nextInt(SkillTags.Element.values().length)];
+            }
+        }
+
+        // 2. The 35% "Chaos" roll (Pure Random)
+        return SkillTags.Element.values()[player.getRandom().nextInt(SkillTags.Element.values().length)];
     }
 }

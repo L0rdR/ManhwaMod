@@ -29,19 +29,21 @@ public class SystemCommands {
                                 )
                         )
 
-                        // 2. AWAKEN
+                        // 2. AWAKEN (FIXED: Clears affinity to trigger a fresh roll)
                         .then(Commands.literal("awaken")
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
+                                    // Reset affinity to NONE so the Tick Event rolls a new one
+                                    player.getPersistentData().putString("manhwamod.affinity", "");
                                     SystemData.saveAwakening(player, true);
                                     player.getPersistentData().putBoolean(SystemData.IS_SYSTEM, true);
                                     SystemData.sync(player);
-                                    player.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fAwakening Forced."));
+                                    player.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fAwakening Forced. Rolling new attribute..."));
                                     return 1;
                                 })
                         )
 
-                        // 3. WIPE PLAYER (FIXED: Clears correct points)
+                        // 3. WIPE PLAYER (FIXED: Clears Affinity)
                         .then(Commands.literal("wipe_player")
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
@@ -50,6 +52,9 @@ public class SystemCommands {
                                     data.putBoolean(SystemData.AWAKENED, false);
                                     data.putBoolean(SystemData.IS_SYSTEM, false);
                                     data.putString(SystemData.BANK, "");
+
+                                    // ADDED: Clear Affinity on Wipe
+                                    data.putString("manhwamod.affinity", "");
 
                                     for (int i = 0; i <= 100; i++) {
                                         data.remove(SystemData.RECIPE_PREFIX + i);
@@ -65,16 +70,13 @@ public class SystemCommands {
                                     data.putInt(SystemData.DEF, 10);
                                     data.putInt(SystemData.SPD, 10);
                                     data.putInt(SystemData.MANA, 10);
-
-                                    // FIXED: Reset SystemData.POINTS
                                     data.putInt(SystemData.POINTS, 0);
-                                    // Remove old deprecated tag just in case
-                                    data.remove("manhwamod.stat_points");
 
-                                    player.getPersistentData().remove("manhwamod.quest_date");
-                                    player.getPersistentData().remove("manhwamod.quest_kills");
-                                    player.getPersistentData().remove("manhwamod.quest_dist");
-                                    player.getPersistentData().remove("manhwamod.quest_done");
+                                    data.remove("manhwamod.stat_points");
+                                    data.remove("manhwamod.quest_date");
+                                    data.remove("manhwamod.quest_kills");
+                                    data.remove("manhwamod.quest_dist");
+                                    data.remove("manhwamod.quest_done");
 
                                     SystemData.sync(player);
                                     player.sendSystemMessage(Component.literal("§c§l[SYSTEM] §fFull Profile Wipe Successful."));
@@ -88,24 +90,21 @@ public class SystemCommands {
                                         .executes(context -> {
                                             ServerPlayer player = context.getSource().getPlayerOrException();
                                             int id = IntegerArgumentType.getInteger(context, "id");
-                                            SystemData.unlockSkill(player, id, "TestSkill_" + id + ":§bRARE:A test ability.", 50);
+                                            SystemData.unlockSkill(player, id, "BALL:FIRE:EXPLODE", 50);
                                             player.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fSkill #" + id + " added to Bank."));
                                             return 1;
                                         })
                                 )
                         )
 
-                        // 5. ADD POINTS (FIXED: Uses SystemData.POINTS)
+                        // 5. ADD POINTS
                         .then(Commands.literal("add_points")
                                 .then(Commands.argument("amount", IntegerArgumentType.integer(1, 9999))
                                         .executes(context -> {
                                             ServerPlayer player = context.getSource().getPlayerOrException();
                                             int amount = IntegerArgumentType.getInteger(context, "amount");
-
-                                            // FIXED: Use the constant, do not type the string manually
                                             int currentPoints = player.getPersistentData().getInt(SystemData.POINTS);
                                             player.getPersistentData().putInt(SystemData.POINTS, currentPoints + amount);
-
                                             SystemData.sync(player);
                                             player.sendSystemMessage(Component.literal("§b§l[ADMIN] §fAdded §e" + amount + " §fstat points."));
                                             return 1;
@@ -118,7 +117,6 @@ public class SystemCommands {
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
                                     player.getPersistentData().putBoolean("manhwamod.is_system_player", true);
-                                    // Clean quest data
                                     player.getPersistentData().remove("manhwamod.quest_date");
                                     player.getPersistentData().remove("manhwamod.quest_kills");
                                     player.getPersistentData().remove("manhwamod.quest_dist");

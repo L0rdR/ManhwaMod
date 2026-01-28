@@ -44,6 +44,13 @@ public class SystemKeyItem extends Item {
                 player.getPersistentData().putInt(SystemData.SPD, 10);
                 player.getPersistentData().putInt(SystemData.DEF, 10);
             }
+            Affinity[] choices = Affinity.values();
+
+// Pick a random one, but start at index 1 to avoid Affinity.NONE
+            Affinity assignedAffinity = choices[level.random.nextInt(1, choices.length)];
+
+// Save it to the player's soul (NBT)
+            SystemData.setAffinity(player, assignedAffinity);
 
             // Sync initial data
             SystemData.sync(player);
@@ -61,10 +68,12 @@ public class SystemKeyItem extends Item {
                 player.sendSystemMessage(Component.literal("§fWelcome, §bPlayer§f. System interface initialized."));
                 player.sendSystemMessage(Component.literal("§7(Press §b'G' §7to view your Status)"));
                 player.sendSystemMessage(Component.literal("§e------------------------------------------"));
+                player.sendSystemMessage(Component.literal("§fAffinity: " + assignedAffinity.color + assignedAffinity.name)); // Display Affinity
             } else {
                 // Regular Hunter Message
                 player.sendSystemMessage(Component.literal("§6§l[AWAKENING] §fSuccess. Rank: §eE-Rank§f."));
                 player.sendSystemMessage(Component.literal("§7(Press §b'G' §7to access your Hunter Device)"));
+                player.sendSystemMessage(Component.literal("§fAffinity: " + assignedAffinity.color + assignedAffinity.name)); // Display Affinity
 
                 level.playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 0.8f, 1.2f);

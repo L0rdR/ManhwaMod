@@ -47,11 +47,6 @@ public class SystemEvents {
                 player.getPersistentData().putInt(SystemData.DEF, 10);
                 player.getPersistentData().putBoolean(SystemData.AWAKENED, false);
             }
-            if (player.getPersistentData().getBoolean(SystemData.IS_SYSTEM)) {
-                if (player.getPersistentData().getString("manhwamod.quest_date").isEmpty()) {
-                    DailyQuestData.checkAndReset(player);
-                }
-            }
             SystemData.sync(player);
         }
     }
@@ -59,10 +54,25 @@ public class SystemEvents {
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase == TickEvent.Phase.END && !event.player.level().isClientSide) {
-            Player player = event.player;
+            if (event.player instanceof ServerPlayer sPlayer) {
 
-            if (player instanceof ServerPlayer sPlayer) {
-                // 1. Mana Regeneration
+                // --- 0. AUTO-AFFINITY ASSIGNER ---
+                // This triggers the moment you awaken (or re-awaken) if you have no element
+                if (SystemData.isAwakened(sPlayer) && SystemData.getAffinity(sPlayer) == Affinity.NONE) {
+                    Affinity[] values = Affinity.values();
+                    // Roll random element, skipping 'NONE' at index 0
+                    Affinity rolled = values[1 + random.nextInt(values.length - 1)];
+
+                    SystemData.setAffinity(sPlayer, rolled);
+
+                    // Big announcement in chat
+                    sPlayer.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fYour soul has resonated with: " + rolled.color + rolled.name()));
+
+                    // Play a cool sound effect
+                    sPlayer.playNotifySound(net.minecraft.sounds.SoundEvents.PLAYER_LEVELUP, net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.2f);
+                }
+
+                // 1. Mana Regen
                 int manaStat = SystemData.getMana(sPlayer);
                 int maxCap = manaStat * 10;
                 int currentMana = SystemData.getCurrentMana(sPlayer);
@@ -74,53 +84,67 @@ public class SystemEvents {
                     int toAdd = (int) totalAddition;
                     if (toAdd > 0) SystemData.saveCurrentMana(sPlayer, Math.min(maxCap, currentMana + toAdd));
                     sPlayer.getPersistentData().putDouble("manhwamod.mana_regen_buffer", totalAddition - toAdd);
-                } else if (currentMana > maxCap) {
-                    SystemData.saveCurrentMana(sPlayer, maxCap);
                 }
 
-                // 2. SKILL GENERATION (FIXED: Threshold 20)
-                int expectedSkills = manaStat / 50; // Changed from 50 to 20
+                // 2. Skill Milestone Logic (65% Weight Applied)
+                int expectedSkills = manaStat / 50;
                 List<Integer> unlockedSkills = SystemData.getUnlockedSkills(sPlayer);
 
-                // Use WHILE loop to catch up if multiple skills are due
                 while (unlockedSkills.size() < expectedSkills) {
                     int newId = 1000 + random.nextInt(90000);
-                    while (unlockedSkills.contains(newId)) newId = 1000 + random.nextInt(90000);
-
-                    String newSkill = generateRandomSkill();
+                    String newSkill = generateRandomSkill(sPlayer);
                     int cost = 20 + random.nextInt(30) + (manaStat / 2);
 
                     SystemData.unlockSkill(sPlayer, newId, newSkill, cost);
                     String name = SkillEngine.getSkillName(newSkill);
-                    sPlayer.displayClientMessage(Component.literal("§b[System] §fAwakening Reached! New Art: §6" + name), false);
-
-                    // Update local list to prevent infinite loop
+                    sPlayer.displayClientMessage(Component.literal("§b[System] §fNew Art: §6" + name), false);
                     unlockedSkills.add(newId);
                 }
 
-                // 3. UPDATE RANK
+                // 3. Update Rank
                 updatePlayerRank(sPlayer);
-            }
 
-            // 4. Quest Tracking
-            double currentDist = player.walkDist;
-            double lastDist = player.getPersistentData().getDouble("manhwamod.last_dist");
-            if (currentDist > lastDist) {
-                DailyQuestData.addDistance(player, currentDist - lastDist);
-                player.getPersistentData().putDouble("manhwamod.last_dist", currentDist);
+                // 4. Quest Tracking
+                double currentDist = sPlayer.walkDist;
+                double lastDist = sPlayer.getPersistentData().getDouble("manhwamod.last_dist");
+                if (currentDist > lastDist) {
+                    DailyQuestData.addDistance(sPlayer, currentDist - lastDist);
+                    sPlayer.getPersistentData().putDouble("manhwamod.last_dist", currentDist);
+                }
+                DailyQuestData.checkAndReset(sPlayer);
             }
-            DailyQuestData.checkAndReset(player);
         }
     }
 
     @SubscribeEvent
     public static void onLivingHurt(LivingHurtEvent event) {
+        // Attack Boost
         if (event.getSource().getEntity() instanceof ServerPlayer player) {
-            if (event.getSource().isIndirect() || "magic".equals(event.getSource().getMsgId())) return;
-            int strength = SystemData.getStrength(player);
-            if (strength > 10) {
-                float damageMulti = 1.0f + (strength * 0.01f);
-                event.setAmount(event.getAmount() * damageMulti);
+            if (!event.getSource().isIndirect() && !"magic".equals(event.getSource().getMsgId())) {
+                int strength = SystemData.getStrength(player);
+                if (strength > 10) {
+                    float damageMulti = 1.0f + (strength * 0.01f);
+                    event.setAmount(event.getAmount() * damageMulti);
+                }
+            }
+        }
+
+        // Elemental Defense (Victim)
+        if (event.getEntity() instanceof ServerPlayer victim) {
+            SkillTags.Element moveElement = SkillEngine.currentSkillElement;
+            if (moveElement != SkillTags.Element.NONE) {
+                Affinity victimAff = SystemData.getAffinity(victim);
+                try {
+                    Affinity moveAff = Affinity.valueOf(moveElement.name());
+                    if (victimAff == moveAff) {
+                        event.setAmount(event.getAmount() * 0.90f);
+                        victim.displayClientMessage(Component.literal("§b🛡 ELEMENTAL RESISTANCE"), true);
+                    }
+                    if (victimAff.getWeaknesses().contains(moveAff)) {
+                        event.setAmount(event.getAmount() * 1.10f);
+                        victim.displayClientMessage(Component.literal("§c⚠ ELEMENTAL WEAKNESS"), true);
+                    }
+                } catch (Exception ignored) {}
             }
         }
     }
@@ -144,15 +168,7 @@ public class SystemEvents {
     private static void updatePlayerRank(ServerPlayer player) {
         int level = SystemData.getLevel(player);
         String currentRank = player.getPersistentData().getString("manhwamod.rank");
-        String newRank = "E";
-
-        if (level >= 900) newRank = "SSS";
-        else if (level >= 750) newRank = "SS";
-        else if (level >= 600) newRank = "S";
-        else if (level >= 450) newRank = "A";
-        else if (level >= 300) newRank = "B";
-        else if (level >= 150) newRank = "C";
-        else if (level >= 50) newRank = "D";
+        String newRank = (level >= 900) ? "SSS" : (level >= 750) ? "SS" : (level >= 600) ? "S" : (level >= 450) ? "A" : (level >= 300) ? "B" : (level >= 150) ? "C" : (level >= 50) ? "D" : "E";
 
         if (!newRank.equals(currentRank)) {
             player.getPersistentData().putString("manhwamod.rank", newRank);
@@ -161,13 +177,18 @@ public class SystemEvents {
         }
     }
 
-    private static String generateRandomSkill() {
-        SkillTags.Shape[] shapes = SkillTags.Shape.values();
-        SkillTags.Shape shape = shapes[random.nextInt(shapes.length)];
-        SkillTags.Element[] elements = SkillTags.Element.values();
-        SkillTags.Element element = elements[random.nextInt(elements.length)];
-        SkillTags.Modifier[] modifiers = SkillTags.Modifier.values();
-        SkillTags.Modifier modifier = modifiers[random.nextInt(modifiers.length)];
+    private static String generateRandomSkill(ServerPlayer player) {
+        SkillTags.Shape shape = SkillTags.Shape.values()[random.nextInt(SkillTags.Shape.values().length)];
+        SkillTags.Modifier modifier = SkillTags.Modifier.values()[random.nextInt(SkillTags.Modifier.values().length)];
+        SkillTags.Element element;
+        Affinity playerAff = SystemData.getAffinity(player);
+
+        if (random.nextFloat() < 0.65f && playerAff != Affinity.NONE) {
+            try { element = SkillTags.Element.valueOf(playerAff.name()); }
+            catch (Exception e) { element = SkillTags.Element.values()[random.nextInt(SkillTags.Element.values().length)]; }
+        } else {
+            element = SkillTags.Element.values()[random.nextInt(SkillTags.Element.values().length)];
+        }
         return shape.name() + ":" + element.name() + ":" + modifier.name();
     }
 }

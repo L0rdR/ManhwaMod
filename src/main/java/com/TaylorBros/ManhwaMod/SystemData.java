@@ -61,6 +61,7 @@ public class SystemData {
             syncData.putInt(LEVEL, nbt.getInt(LEVEL));
             syncData.putInt(CURRENT_MANA, nbt.getInt(CURRENT_MANA));
             syncData.putInt(XP, nbt.getInt(XP));
+            syncData.putString("manhwamod.affinity", nbt.getString("manhwamod.affinity"));
 
             for (int i = 0; i < 5; i++) {
                 String key = SLOT_PREFIX + i;
@@ -125,4 +126,19 @@ public class SystemData {
     public static void saveDefense(Player player, int val) { player.getPersistentData().putInt(DEF, val); sync(player); }
     public static void saveSpeed(Player player, int val) { player.getPersistentData().putInt(SPD, val); sync(player); }
     public static void saveMana(Player player, int val) { player.getPersistentData().putInt(MANA, val); sync(player); }
+
+    public static void setAffinity(Player player, Affinity affinity) {
+        player.getPersistentData().putString("manhwamod.affinity", affinity.name());
+        // ADD THIS LINE: Force the update to the client immediately
+        sync(player);
+    }
+
+    public static Affinity getAffinity(Player player) {
+        String name = player.getPersistentData().getString("manhwamod.affinity");
+        try {
+            return name.isEmpty() ? Affinity.NONE : Affinity.valueOf(name);
+        } catch (IllegalArgumentException e) {
+            return Affinity.NONE;
+        }
+    }
 }
