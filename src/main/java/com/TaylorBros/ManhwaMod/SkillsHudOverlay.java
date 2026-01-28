@@ -1,5 +1,6 @@
 package com.TaylorBros.ManhwaMod;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
@@ -11,30 +12,30 @@ public class SkillsHudOverlay {
 
         var font = mc.font;
         int x = 10;
-        int y = height / 2 - 40; // Centered left
+        int y = height / 2 - 40;
 
-        // 1. Draw Container Background (Panel for all 5 skills)
-        // x, y, width, height, color (0x66000000 is semi-transparent black)
+        // Background
         guiGraphics.fill(x - 5, y - 5, x + 130, y + 105, 0x66000000);
-        // 2. Draw Cyan Decoration Line on Left
         guiGraphics.fill(x - 5, y - 5, x - 3, y + 105, 0xFF00AAFF);
 
         for (int i = 0; i < 5; i++) {
             int skillId = mc.player.getPersistentData().getInt(SystemData.SLOT_PREFIX + i);
-            String fullData = SystemData.getSkillRecipe(mc.player, i); // This now contains "RECIPE|NAME"
+            String fullData = SystemData.getSkillRecipe(mc.player, i);
             boolean isEmpty = skillId <= 0 || fullData.isEmpty();
             int rowY = y + (i * 20);
 
             if (!isEmpty) {
-                // --- NEW LOGIC TO UNPACK THE NAME ---
                 String displayName;
                 if (fullData.contains("|")) {
                     String[] split = fullData.split("\\|");
-                    displayName = split[1]; // Grabs the saved "Infernal Strike..."
+                    displayName = split[1];
                 } else {
-                    // Fallback for skills generated before the name system
                     displayName = SkillEngine.getSkillName(fullData);
                 }
+
+                // --- 1. GET RANK COLOR ---
+                int rankColor = SkillRanker.getColor(fullData);
+                SkillRanker.Rank rank = SkillRanker.getRank(fullData);
 
                 long lastUse = mc.player.getPersistentData().getLong(SystemData.LAST_USE_PREFIX + i);
                 int duration = mc.player.getPersistentData().getInt(SystemData.COOLDOWN_PREFIX + i);
@@ -46,12 +47,18 @@ public class SkillsHudOverlay {
                     guiGraphics.fill(x, rowY + 12, x + barWidth, rowY + 13, 0xFFFFD700);
                     guiGraphics.drawString(font, "§7" + (i + 1) + ". §cCooldown...", x, rowY, 0xFFFFFF);
                 } else {
-                    // Display the saved name instead of re-generating it
-                    guiGraphics.drawString(font, "§b" + (i + 1) + ". §f" + displayName, x, rowY, 0xFFFFFF);
+                    // --- 2. RENDER: "1. [S] Name" ---
+                    String rankPrefix = "§7[" + rank.label + "] ";
+                    guiGraphics.drawString(font, "§b" + (i + 1) + ". " + rankPrefix, x, rowY, 0xFFFFFF);
+
+                    // Draw name in its specific rank color
+                    int offset = font.width("1. " + rankPrefix);
+                    guiGraphics.drawString(font, displayName, x + offset, rowY, rankColor);
                 }
             } else {
                 guiGraphics.drawString(font, "§8" + (i + 1) + ". [ --- ]", x, rowY, 0xFFFFFF);
             }
         }
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     };
 }

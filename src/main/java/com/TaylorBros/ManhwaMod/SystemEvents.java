@@ -21,8 +21,7 @@ public class SystemEvents {
     @SubscribeEvent
     public static void onPlayerSave(PlayerEvent.SaveToFile event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            int currentMana = player.getPersistentData().getInt(SystemData.CURRENT_MANA);
-            player.getPersistentData().putInt(SystemData.CURRENT_MANA, currentMana);
+            player.getPersistentData().putInt(SystemData.CURRENT_MANA, player.getPersistentData().getInt(SystemData.CURRENT_MANA));
         }
     }
 
@@ -47,7 +46,8 @@ public class SystemEvents {
                 player.getPersistentData().putInt(SystemData.DEF, 10);
                 player.getPersistentData().putBoolean(SystemData.AWAKENED, false);
             }
-            SystemData.sync(player);
+            // ANTI-FREEZE: Do not sync immediately. Flag for delayed sync.
+            player.getPersistentData().putBoolean("manhwamod.needs_initial_sync", true);
         }
     }
 
@@ -56,64 +56,67 @@ public class SystemEvents {
         if (event.phase == TickEvent.Phase.END && !event.player.level().isClientSide) {
             if (event.player instanceof ServerPlayer sPlayer) {
 
-                // --- 0. AUTO-AFFINITY ASSIGNER ---
-                // This triggers the moment you awaken (or re-awaken) if you have no element
-                if (SystemData.isAwakened(sPlayer) && SystemData.getAffinity(sPlayer) == Affinity.NONE) {
-                    Affinity[] values = Affinity.values();
-                    // Roll random element, skipping 'NONE' at index 0
-                    Affinity rolled = values[1 + random.nextInt(values.length - 1)];
-
-                    SystemData.setAffinity(sPlayer, rolled);
-
-                    // Big announcement in chat
-                    sPlayer.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fYour soul has resonated with: " + rolled.color + rolled.name()));
-
-                    // Play a cool sound effect
-                    sPlayer.playNotifySound(net.minecraft.sounds.SoundEvents.PLAYER_LEVELUP, net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.2f);
+                // --- ANTI-FREEZE LOGIC ---
+                // Waits 1 second (20 ticks) after joining before sending the heavy data packet
+                if (sPlayer.getPersistentData().getBoolean("manhwamod.needs_initial_sync")) {
+                    if (sPlayer.tickCount > 20) {
+                        SystemData.sync(sPlayer);
+                        sPlayer.getPersistentData().putBoolean("manhwamod.needs_initial_sync", false);
+                    }
+                    return; // Skip other logic until synced
                 }
 
-                // 1. Mana Regen
+                // 0. AUTO-AFFINITY ASSIGNER
+                if (SystemData.isAwakened(sPlayer) && SystemData.getAffinity(sPlayer) == Affinity.NONE) {
+                    Affinity[] values = Affinity.values();
+                    Affinity rolled = values[1 + random.nextInt(values.length - 1)];
+                    SystemData.setAffinity(sPlayer, rolled);
+                    sPlayer.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fYour soul has resonated with: " + rolled.color + rolled.name()));
+                }
+
+                // 1. Mana Regen (Throttled Sync)
                 int manaStat = SystemData.getMana(sPlayer);
                 int maxCap = manaStat * 10;
                 int currentMana = SystemData.getCurrentMana(sPlayer);
+                boolean dirty = false;
 
                 if (currentMana < maxCap) {
                     double regenPerTick = 0.05 + (manaStat / 200.0);
                     double buffer = sPlayer.getPersistentData().getDouble("manhwamod.mana_regen_buffer");
                     double totalAddition = regenPerTick + buffer;
                     int toAdd = (int) totalAddition;
-                    if (toAdd > 0) SystemData.saveCurrentMana(sPlayer, Math.min(maxCap, currentMana + toAdd));
-                    sPlayer.getPersistentData().putDouble("manhwamod.mana_regen_buffer", totalAddition - toAdd);
+                    if (toAdd > 0) {
+                        SystemData.saveCurrentMana(sPlayer, Math.min(maxCap, currentMana + toAdd));
+                        sPlayer.getPersistentData().putDouble("manhwamod.mana_regen_buffer", totalAddition - toAdd);
+                        // Do NOT sync here. Just save.
+                    } else {
+                        sPlayer.getPersistentData().putDouble("manhwamod.mana_regen_buffer", totalAddition);
+                    }
                 }
 
-                // 2. Skill Milestone Logic (65% Weight Applied)
+                // 2. Skill Milestone Logic
                 int expectedSkills = manaStat / 50;
                 List<Integer> unlockedSkills = SystemData.getUnlockedSkills(sPlayer);
 
-                // 2. Skill Milestone Logic (Update this part)
                 while (unlockedSkills.size() < expectedSkills) {
                     int newId = 1000 + random.nextInt(90000);
                     String recipe = generateRandomSkill(sPlayer);
                     int cost = 20 + random.nextInt(30) + (manaStat / 2);
 
-                    // --- DYNAMIC NAMING ---
                     String[] parts = recipe.split(":");
                     String elementWord = SkillNamingEngine.getElementName(parts[1]);
                     String shapeWord = SkillNamingEngine.getShapeName(parts[0]);
                     String modWord = SkillNamingEngine.getModifierName(parts[2]);
-
                     String coolName = elementWord + " " + shapeWord + " " + modWord;
 
-                    // IMPORTANT: We save the RECIPE and the NAME together separated by |
-                    // This locks the name so it never re-rolls again
                     SystemData.unlockSkill(sPlayer, newId, recipe + "|" + coolName.trim(), cost);
-
                     sPlayer.displayClientMessage(Component.literal("§b[System] §fNew Art: §6§l" + coolName.trim()), false);
                     unlockedSkills.add(newId);
+                    dirty = true;
                 }
 
                 // 3. Update Rank
-                updatePlayerRank(sPlayer);
+                if (updatePlayerRank(sPlayer)) dirty = true;
 
                 // 4. Quest Tracking
                 double currentDist = sPlayer.walkDist;
@@ -123,6 +126,16 @@ public class SystemEvents {
                     sPlayer.getPersistentData().putDouble("manhwamod.last_dist", currentDist);
                 }
                 DailyQuestData.checkAndReset(sPlayer);
+
+                // --- GLOBAL SYNC THROTTLE ---
+                // Only allows 1 packet per second maximum
+                if (dirty) {
+                    long lastSync = sPlayer.getPersistentData().getLong("manhwamod.last_sync_time");
+                    if (sPlayer.level().getGameTime() - lastSync > 20) {
+                        SystemData.sync(sPlayer);
+                        sPlayer.getPersistentData().putLong("manhwamod.last_sync_time", sPlayer.level().getGameTime());
+                    }
+                }
             }
         }
     }
@@ -176,7 +189,7 @@ public class SystemEvents {
         }
     }
 
-    private static void updatePlayerRank(ServerPlayer player) {
+    private static boolean updatePlayerRank(ServerPlayer player) {
         int level = SystemData.getLevel(player);
         String currentRank = player.getPersistentData().getString("manhwamod.rank");
         String newRank = (level >= 900) ? "SSS" : (level >= 750) ? "SS" : (level >= 600) ? "S" : (level >= 450) ? "A" : (level >= 300) ? "B" : (level >= 150) ? "C" : (level >= 50) ? "D" : "E";
@@ -184,8 +197,9 @@ public class SystemEvents {
         if (!newRank.equals(currentRank)) {
             player.getPersistentData().putString("manhwamod.rank", newRank);
             player.displayClientMessage(Component.literal("§b§l[SYSTEM] §fRank Up: §e§l" + newRank), false);
-            SystemData.sync(player);
+            return true; // Return true to signal a sync is needed
         }
+        return false;
     }
 
     private static String generateRandomSkill(ServerPlayer player) {
@@ -202,5 +216,4 @@ public class SystemEvents {
         }
         return shape.name() + ":" + element.name() + ":" + modifier.name();
     }
-
 }

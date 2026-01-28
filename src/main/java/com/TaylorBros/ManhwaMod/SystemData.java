@@ -43,7 +43,7 @@ public class SystemData {
     public static void savePoints(Player player, int val) { player.getPersistentData().putInt(POINTS, val); sync(player); }
     public static void saveCurrentMana(Player player, int val) { player.getPersistentData().putInt(CURRENT_MANA, val); sync(player); }
 
-    // --- SYNCING (FIXED) ---
+    // --- SYNCING ---
     public static void sync(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
             CompoundTag nbt = player.getPersistentData();
@@ -74,7 +74,6 @@ public class SystemData {
                 String rKey = RECIPE_PREFIX + id;
                 syncData.putString(rKey, nbt.getString(rKey));
 
-                // Fixed: Sync the cost!
                 String cKey = COST_PREFIX + id;
                 syncData.putInt(cKey, nbt.getInt(cKey));
             }
@@ -91,18 +90,14 @@ public class SystemData {
         }
     }
 
+    // --- THE FIX IS HERE ---
     public static String getSkillRecipe(Player player, int slot) {
         int skillId = player.getPersistentData().getInt(SLOT_PREFIX + slot);
         if (skillId <= 0) return "";
 
-        String rawData = player.getPersistentData().getString(RECIPE_PREFIX + skillId);
-
-        // If it contains the name, only return the RECIPE part for the Skill Engine to use
-        if (rawData.contains("|")) {
-            return rawData.split("\\|")[0];
-        }
-
-        return rawData;
+        // FIXED: Return the FULL string (e.g. "BALL:FIRE:EXPLODE|Infernal Star")
+        // Do NOT split it here. The HUD needs the name part, and SkillEngine cleans it itself.
+        return player.getPersistentData().getString(RECIPE_PREFIX + skillId);
     }
 
     public static List<Integer> getUnlockedSkills(Player player) {
@@ -137,7 +132,6 @@ public class SystemData {
 
     public static void setAffinity(Player player, Affinity affinity) {
         player.getPersistentData().putString("manhwamod.affinity", affinity.name());
-        // ADD THIS LINE: Force the update to the client immediately
         sync(player);
     }
 
