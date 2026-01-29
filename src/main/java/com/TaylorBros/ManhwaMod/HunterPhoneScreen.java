@@ -18,16 +18,9 @@ public class HunterPhoneScreen extends Screen {
     private static final int VISIBLE_ROWS = 5;
     private int selectedSkillId = -1;
 
-    // --- SORTING STATE ---
-    private enum SortMode {
-        ID("ID"),
-        RANK_DESC("Best"), // SSS -> F
-        RANK_ASC("Worst"); // F -> SSS
-
-        final String label;
-        SortMode(String l) { this.label = l; }
-    }
-    private SortMode currentSort = SortMode.RANK_DESC; // Default to showing best skills first
+    // SORTING STATE
+    private enum SortMode { ID("ID"), RANK_DESC("Best"), RANK_ASC("Worst"); final String label; SortMode(String l) { this.label = l; } }
+    private SortMode currentSort = SortMode.RANK_DESC;
 
     // COLORS
     private static final int COL_CASE_BG = 0xFF050510;
@@ -51,7 +44,7 @@ public class HunterPhoneScreen extends Screen {
         Player player = this.minecraft.player;
         if (player == null) return;
 
-        // HOME SCREEN
+        // --- HOME SCREEN ---
         if (currentApp == 0) {
             this.addRenderableWidget(new AppIcon(cx - 50, cy - 50, 0xFFCC0000, "STATUS", button -> switchApp(1)));
             this.addRenderableWidget(new AppIcon(cx + 10, cy - 50, 0xFF0055FF, "SKILLS", button -> switchApp(2)));
@@ -59,9 +52,12 @@ public class HunterPhoneScreen extends Screen {
                 this.addRenderableWidget(new AppIcon(cx - 50, cy + 10, 0xFFFFAA00, "QUEST", button -> switchApp(3)));
             }
             this.addRenderableWidget(new AppIcon(cx + 10, cy + 10, 0xFF00AA00, "MAP", button -> switchApp(4)));
+
+            // NEW STORE APP ICON (Purple)
+            this.addRenderableWidget(new AppIcon(cx - 20, cy + 50, 0xFFAA00FF, "STORE", button -> switchApp(5)));
         }
 
-        // STATUS APP
+        // --- STATUS APP ---
         if (currentApp == 1) {
             int points = player.getPersistentData().getInt(SystemData.POINTS);
             if (points > 0) {
@@ -83,20 +79,35 @@ public class HunterPhoneScreen extends Screen {
             }
         }
 
-        // SKILLS APP - Add Sort Button
+        // --- SKILLS APP ---
         if (currentApp == 2) {
-            // Tiny button in top-right corner of screen
             this.addRenderableWidget(Button.builder(Component.literal("Sort: " + currentSort.label), b -> {
-                // Cycle: DESC -> ASC -> ID
                 switch (currentSort) {
                     case RANK_DESC -> currentSort = SortMode.RANK_ASC;
                     case RANK_ASC -> currentSort = SortMode.ID;
                     case ID -> currentSort = SortMode.RANK_DESC;
                 }
                 b.setMessage(Component.literal("Sort: " + currentSort.label));
-                // Reset scroll when sorting changes
                 this.scrollOffset = 0;
             }).bounds(cx + 35, cy - 83, 45, 12).build());
+        }
+
+        // --- STORE APP (New) ---
+        if (currentApp == 5) {
+            int btnX = cx - 60;
+            int btnY = cy - 40;
+
+            // Buy Skill
+            this.addRenderableWidget(Button.builder(Component.literal("Mystery Skill (10 Pts)"), b ->
+                    Messages.sendToServer(new PacketBuyItem(0))).bounds(btnX, btnY, 120, 20).build());
+
+            // Buy Mana
+            this.addRenderableWidget(Button.builder(Component.literal("Mana Elixir (5 Pts)"), b ->
+                    Messages.sendToServer(new PacketBuyItem(1))).bounds(btnX, btnY + 25, 120, 20).build());
+
+            // Gamble
+            this.addRenderableWidget(Button.builder(Component.literal("Gamble Box (1 Pt)"), b ->
+                    Messages.sendToServer(new PacketBuyItem(2))).bounds(btnX, btnY + 50, 120, 20).build());
         }
 
         // HOME BUTTON
@@ -106,43 +117,27 @@ public class HunterPhoneScreen extends Screen {
         }).bounds(cx - 20, cy + 98, 40, 8).build());
     }
 
+    // [Helper methods for Stats, Sorting, etc. kept same as before]
     private Button createStatBtn(int x, int y, String stat) {
-        return Button.builder(Component.literal("+"), b ->
-                        Messages.sendToServer(new PacketIncreaseStat(stat, multiplier)))
-                .bounds(x, y, 15, 10).build();
+        return Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat(stat, multiplier))).bounds(x, y, 15, 10).build();
     }
-    private void switchApp(int appId) {
-        this.currentApp = appId;
-        this.scrollOffset = 0;
-        this.selectedSkillId = -1;
-        this.init();
-    }
+    private void switchApp(int appId) { this.currentApp = appId; this.scrollOffset = 0; this.selectedSkillId = -1; this.init(); }
     private void addButtonToGroup(Button b) { this.addRenderableWidget(b); this.statusButtons.add(b); }
 
-    // --- HELPER TO GET SORTED LIST ---
     private List<Integer> getSortedSkills(Player p) {
         List<Integer> skills = new ArrayList<>(SystemData.getUnlockedSkills(p));
-
-        if (currentSort == SortMode.ID) return skills; // Default order
-
+        if (currentSort == SortMode.ID) return skills;
         skills.sort((id1, id2) -> {
             String r1 = p.getPersistentData().getString(SystemData.RECIPE_PREFIX + id1);
             String r2 = p.getPersistentData().getString(SystemData.RECIPE_PREFIX + id2);
             SkillRanker.Rank rank1 = SkillRanker.getRank(r1);
             SkillRanker.Rank rank2 = SkillRanker.getRank(r2);
-
-            // Compare ranks (High ordinal = Better Rank)
-            if (currentSort == SortMode.RANK_DESC) {
-                return Integer.compare(rank2.ordinal(), rank1.ordinal()); // SSS -> F
-            } else {
-                return Integer.compare(rank1.ordinal(), rank2.ordinal()); // F -> SSS
-            }
+            return (currentSort == SortMode.RANK_DESC) ? Integer.compare(rank2.ordinal(), rank1.ordinal()) : Integer.compare(rank1.ordinal(), rank2.ordinal());
         });
         return skills;
     }
 
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    @Override public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (currentApp == 2) {
             List<Integer> skills = getSortedSkills(this.minecraft.player);
             int maxOffset = Math.max(0, skills.size() - VISIBLE_ROWS);
@@ -153,15 +148,13 @@ public class HunterPhoneScreen extends Screen {
         return super.mouseScrolled(mouseX, mouseY, delta);
     }
 
-    @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    @Override public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics);
         int cx = this.width / 2;
         int cy = this.height / 2;
         Player p = this.minecraft.player;
         if (p == null) return;
 
-        // Phone Body
         guiGraphics.fill(cx - 85, cy - 110, cx + 85, cy + 115, COL_CASE_BG);
         guiGraphics.renderOutline(cx - 85, cy - 110, 170, 225, COL_CASE_BORDER);
         guiGraphics.fill(cx - 80, cy - 90, cx + 80, cy + 90, COL_SCREEN_BG);
@@ -176,10 +169,12 @@ public class HunterPhoneScreen extends Screen {
             case 2 -> renderSkillsApp(guiGraphics, cx, cy, p, mouseX, mouseY);
             case 3 -> renderPlaceholderApp(guiGraphics, cx, cy, "DAILY QUEST");
             case 4 -> renderPlaceholderApp(guiGraphics, cx, cy, "DUNGEON MAP");
+            case 5 -> renderStoreApp(guiGraphics, cx, cy, p); // STORE RENDER
         }
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
+    // --- RENDER METHODS ---
     private void renderHomeScreen(GuiGraphics guiGraphics, int cx, int cy, Player p) {
         guiGraphics.drawCenteredString(this.font, "§bHUNTER PHONE", cx, cy - 75, COL_TEXT_WHITE);
         guiGraphics.drawCenteredString(this.font, "§7Welcome, " + p.getName().getString() + ".", cx, cy - 65, 0xFFAAAAAA);
@@ -193,17 +188,13 @@ public class HunterPhoneScreen extends Screen {
         int def = p.getPersistentData().getInt(SystemData.DEF);
         int points = p.getPersistentData().getInt(SystemData.POINTS);
         Affinity aff = SystemData.getAffinity(p);
-        String rank = p.getPersistentData().getString("manhwamod.rank");
-        if (rank.isEmpty()) rank = "E";
+        String rank = p.getPersistentData().getString("manhwamod.rank"); if (rank.isEmpty()) rank = "E";
 
         guiGraphics.drawCenteredString(this.font, "§e" + p.getName().getString(), cx, cy - 80, COL_TEXT_WHITE);
         guiGraphics.drawCenteredString(this.font, "§7Rank: §b" + rank, cx, cy - 70, COL_TEXT_WHITE);
         guiGraphics.drawCenteredString(this.font, "Affinity: " + aff.color + aff.name, cx, cy - 62, 0xFFFFFFFF);
 
-        int startY = cy - 40;
-        int gap = 12;
-        int textX = cx - 70;
-
+        int startY = cy - 40; int gap = 12; int textX = cx - 70;
         drawStatRow(guiGraphics, "Strength:", str, textX, startY, 0xFFFF5555);
         drawStatRow(guiGraphics, "Agility:", agi, textX, startY + gap, 0xFF55FF55);
         drawStatRow(guiGraphics, "Vitality:", vit, textX, startY + gap*2, 0xFFFFAA00);
@@ -213,20 +204,14 @@ public class HunterPhoneScreen extends Screen {
     }
 
     private void drawStatRow(GuiGraphics g, String label, int val, int x, int y, int color) {
-        g.drawString(this.font, label, x, y, 0xFFAAAAAA);
-        g.drawString(this.font, String.valueOf(val), x + 60, y, color);
+        g.drawString(this.font, label, x, y, 0xFFAAAAAA); g.drawString(this.font, String.valueOf(val), x + 60, y, color);
     }
 
     private void renderSkillsApp(GuiGraphics guiGraphics, int cx, int cy, Player p, int mouseX, int mouseY) {
         guiGraphics.drawString(this.font, "§3SKILL DATABASE", cx - 75, cy - 80, COL_TEXT_WHITE);
-
-        // USE SORTED LIST HERE
         List<Integer> skills = getSortedSkills(p);
 
-        if (skills.isEmpty()) {
-            guiGraphics.drawCenteredString(this.font, "§7(No Arts Acquired)", cx, cy, 0x555555);
-            return;
-        }
+        if (skills.isEmpty()) { guiGraphics.drawCenteredString(this.font, "§7(No Arts Acquired)", cx, cy, 0x555555); return; }
 
         int startY = cy - 60;
         for (int i = 0; i < VISIBLE_ROWS; i++) {
@@ -235,17 +220,9 @@ public class HunterPhoneScreen extends Screen {
 
             int skillId = skills.get(dataIndex);
             int yPos = startY + (i * 25);
-
             String fullData = p.getPersistentData().getString(SystemData.RECIPE_PREFIX + skillId);
             int cost = p.getPersistentData().getInt(SystemData.COST_PREFIX + skillId);
-
-            String displayName;
-            if (fullData.contains("|")) {
-                String[] split = fullData.split("\\|");
-                displayName = split[1];
-            } else {
-                displayName = SkillEngine.getSkillName(fullData);
-            }
+            String displayName = fullData.contains("|") ? fullData.split("\\|")[1] : SkillEngine.getSkillName(fullData);
 
             int nameColor = SkillRanker.getColor(fullData);
             SkillRanker.Rank rank = SkillRanker.getRank(fullData);
@@ -254,7 +231,6 @@ public class HunterPhoneScreen extends Screen {
 
             boolean isHovered = (mouseX >= cx - 75 && mouseX <= cx + 75 && mouseY >= yPos && mouseY <= yPos + 22);
             boolean isSelected = (skillId == selectedSkillId);
-
             int bgColor = isSelected ? 0xFF004400 : (isHovered ? 0xFF002244 : 0x44000000);
             int outlineColor = isSelected ? 0xFF00FF00 : 0xFF000000;
 
@@ -264,24 +240,17 @@ public class HunterPhoneScreen extends Screen {
             int costWidth = this.font.width(costText);
             guiGraphics.drawString(this.font, costText, cx + 70 - costWidth, yPos + 7, COL_TEXT_GLOW);
 
-            int availableWidth = 135 - costWidth;
-            int nameWidth = this.font.width(textToShow);
-            float scale = 0.8f;
+            int availableWidth = 135 - costWidth; int nameWidth = this.font.width(textToShow); float scale = 0.8f;
             if (nameWidth * scale > availableWidth) scale = (float) availableWidth / nameWidth;
 
             guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(cx - 70, yPos + 7, 0);
-            guiGraphics.pose().scale(scale, scale, 1.0f);
+            guiGraphics.pose().translate(cx - 70, yPos + 7, 0); guiGraphics.pose().scale(scale, scale, 1.0f);
             guiGraphics.drawString(this.font, textToShow, 0, 0, nameColor);
             guiGraphics.pose().popPose();
         }
-
-        int slotY = cy + 70;
-        int slotSize = 20;
-        int startX = cx - 70;
-        int spacing = 30;
+        // Equip slots
+        int slotY = cy + 70; int slotSize = 20; int startX = cx - 70; int spacing = 30;
         guiGraphics.drawCenteredString(this.font, "§8[ Equip Slot ]", cx, slotY - 10, 0xFFAAAAAA);
-
         for (int i = 0; i < 5; i++) {
             int slotX = startX + (i * spacing);
             boolean hoverSlot = (mouseX >= slotX && mouseX <= slotX + slotSize && mouseY >= slotY && mouseY <= slotY + slotSize);
@@ -293,6 +262,14 @@ public class HunterPhoneScreen extends Screen {
         }
     }
 
+    private void renderStoreApp(GuiGraphics guiGraphics, int cx, int cy, Player p) {
+        guiGraphics.drawCenteredString(this.font, "§dSYSTEM STORE", cx, cy - 80, COL_TEXT_WHITE);
+        int points = SystemData.getPoints(p);
+        guiGraphics.drawCenteredString(this.font, "Balance: §e" + points + " Pts", cx, cy - 65, 0xFFFFFFFF);
+
+        guiGraphics.drawCenteredString(this.font, "§7Spend points to grow stronger.", cx, cy + 85, 0xFFAAAAAA);
+    }
+
     private void renderPlaceholderApp(GuiGraphics guiGraphics, int cx, int cy, String title) {
         guiGraphics.drawCenteredString(this.font, "§l" + title, cx, cy - 50, COL_TEXT_WHITE);
         guiGraphics.drawCenteredString(this.font, "Locked.", cx, cy, 0xFF555555);
@@ -301,64 +278,35 @@ public class HunterPhoneScreen extends Screen {
     @Override public boolean isPauseScreen() { return false; }
 
     private class AppIcon extends Button {
-        private final int color;
-        private final String label;
-        public AppIcon(int x, int y, int color, String label, OnPress onPress) {
-            super(x, y, 32, 32, Component.empty(), onPress, DEFAULT_NARRATION);
-            this.color = color;
-            this.label = label;
-        }
+        private final int color; private final String label;
+        public AppIcon(int x, int y, int color, String label, OnPress onPress) { super(x, y, 32, 32, Component.empty(), onPress, DEFAULT_NARRATION); this.color = color; this.label = label; }
         @Override public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
             int renderColor = isHovered ? 0xFFFFFFFF : color;
             guiGraphics.fill(getX(), getY(), getX() + width, getY() + height, 0xDD000000);
             guiGraphics.renderOutline(getX(), getY(), width, height, renderColor);
-            if (isHovered) {
-                guiGraphics.drawCenteredString(Minecraft.getInstance().font, label, getX() + width / 2, getY() + height + 4, COL_TEXT_WHITE);
-            } else {
-                String letter = label.substring(0, 1);
-                guiGraphics.drawCenteredString(Minecraft.getInstance().font, letter, getX() + width / 2, getY() + height / 2 - 4, renderColor);
-            }
+            if (isHovered) guiGraphics.drawCenteredString(Minecraft.getInstance().font, label, getX() + width / 2, getY() + height + 4, COL_TEXT_WHITE);
+            else guiGraphics.drawCenteredString(Minecraft.getInstance().font, label.substring(0, 1), getX() + width / 2, getY() + height / 2 - 4, renderColor);
         }
     }
 
     @Override public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (super.mouseClicked(mouseX, mouseY, button)) return true;
-
         if (currentApp == 2) {
-            int cx = this.width / 2;
-            int cy = this.height / 2;
-            int startY = cy - 60;
-            List<Integer> skills = getSortedSkills(this.minecraft.player); // USE SORTED LIST FOR CLICKS TOO
-
+            int cx = this.width / 2; int cy = this.height / 2; int startY = cy - 60;
+            List<Integer> skills = getSortedSkills(this.minecraft.player);
             for (int i = 0; i < VISIBLE_ROWS; i++) {
                 int yPos = startY + (i * 25);
                 if (mouseX >= cx - 75 && mouseX <= cx + 75 && mouseY >= yPos && mouseY <= yPos + 22) {
                     int dataIndex = i + scrollOffset;
-                    if (dataIndex < skills.size()) {
-                        this.selectedSkillId = skills.get(dataIndex);
-                        this.minecraft.player.playSound(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK.get(), 1.0f, 1.0f);
-                        return true;
-                    }
+                    if (dataIndex < skills.size()) { this.selectedSkillId = skills.get(dataIndex); this.minecraft.player.playSound(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK.get(), 1.0f, 1.0f); return true; }
                 }
             }
-
-            // Click Equip Slot logic remains same...
-            int slotY = cy + 70;
-            int slotSize = 20;
-            int startX = cx - 70;
-            int spacing = 30;
-
+            int slotY = cy + 70; int slotSize = 20; int startX = cx - 70; int spacing = 30;
             for (int i = 0; i < 5; i++) {
                 int slotX = startX + (i * spacing);
                 if (mouseX >= slotX && mouseX <= slotX + slotSize && mouseY >= slotY && mouseY <= slotY + slotSize) {
-                    if (selectedSkillId != -1) {
-                        Messages.sendToServer(new PacketEquipSkill(i, selectedSkillId));
-                        this.minecraft.player.displayClientMessage(Component.literal("§a[System] Equipped to Slot " + (i + 1)), true);
-                        this.minecraft.player.playSound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-                        return true;
-                    } else {
-                        this.minecraft.player.displayClientMessage(Component.literal("§cSelect a Skill first."), true);
-                    }
+                    if (selectedSkillId != -1) { Messages.sendToServer(new PacketEquipSkill(i, selectedSkillId)); this.minecraft.player.displayClientMessage(Component.literal("§a[System] Equipped to Slot " + (i + 1)), true); this.minecraft.player.playSound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f); return true; }
+                    else { this.minecraft.player.displayClientMessage(Component.literal("§cSelect a Skill first."), true); }
                 }
             }
         }

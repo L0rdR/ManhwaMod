@@ -74,6 +74,12 @@ public class Messages {
                 .encoder(PacketIncreaseStat::toBytes)
                 .consumerMainThread(PacketIncreaseStat::handle)
                 .add();
+        //7. i think this is for buying things from store ( Client -> Server)
+        net.messageBuilder(PacketBuyItem.class, id(), NetworkDirection.PLAY_TO_SERVER)
+                .decoder(PacketBuyItem::new)
+                .encoder(PacketBuyItem::toBytes)
+                .consumerMainThread(PacketBuyItem::handle)
+                .add();
     }
 
 }
