@@ -71,6 +71,7 @@ public class SystemCommands {
                                     data.putInt(SystemData.SPD, 10);
                                     data.putInt(SystemData.MANA, 10);
                                     data.putInt(SystemData.POINTS, 0);
+                                    data.putInt(SystemData.CURRENT_MANA, 100);
 
                                     data.remove("manhwamod.stat_points");
                                     data.remove("manhwamod.quest_date");
