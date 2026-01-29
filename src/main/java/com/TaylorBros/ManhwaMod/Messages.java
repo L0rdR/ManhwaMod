@@ -86,6 +86,12 @@ public class Messages {
                 .encoder(PacketExtractSkill::toBytes)
                 .consumerMainThread(PacketExtractSkill::handle)
                 .add();
+        //this is for the screen shake i believe
+        net.messageBuilder(PacketScreenShake.class, id(), NetworkDirection.PLAY_TO_CLIENT)
+                .decoder(PacketScreenShake::new)
+                .encoder(PacketScreenShake::toBytes)
+                .consumerMainThread(PacketScreenShake::handle)
+                .add();
     }
 
 }

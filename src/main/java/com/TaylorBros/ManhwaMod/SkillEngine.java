@@ -40,9 +40,13 @@ public class SkillEngine {
             SimpleParticleType p1 = getElementParticle(element);
             SimpleParticleType p2 = getModifierParticle(modifier);
 
-            playSkillSounds(player, element, modifier);
-            player.serverLevel().sendParticles(p1, player.getX(), player.getY() + 1, player.getZ(), 15, 0.4, 0.1, 0.4, 0.05);
+            // --- OLD VISUALS REMOVED ---
+            // playSkillSounds(player, element, modifier);
+            // player.serverLevel().sendParticles(...)
 
+            // --- NEW ROBUST VISUALS ADDED ---
+            // This reads the Rank from the recipe and plays the correct Sphere/Helix/Ring animation
+            SkillVisuals.play(player, getSkillName(recipe), recipe);
             switch (shape) {
                 case BALL -> runBall(player, p1, p2, modifier, multi, element, intelligence);
                 case RAY -> runRay(player, p1, p2, modifier, multi, element, intelligence);

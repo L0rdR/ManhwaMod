@@ -2,6 +2,7 @@ package com.TaylorBros.ManhwaMod;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -29,11 +30,10 @@ public class SystemCommands {
                                 )
                         )
 
-                        // 2. AWAKEN (FIXED: Clears affinity to trigger a fresh roll)
+                        // 2. AWAKEN
                         .then(Commands.literal("awaken")
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
-                                    // Reset affinity to NONE so the Tick Event rolls a new one
                                     player.getPersistentData().putString("manhwamod.affinity", "");
                                     SystemData.saveAwakening(player, true);
                                     player.getPersistentData().putBoolean(SystemData.IS_SYSTEM, true);
@@ -43,7 +43,7 @@ public class SystemCommands {
                                 })
                         )
 
-                        // 3. WIPE PLAYER (FIXED: Clears Affinity)
+                        // 3. WIPE PLAYER
                         .then(Commands.literal("wipe_player")
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
@@ -52,8 +52,6 @@ public class SystemCommands {
                                     data.putBoolean(SystemData.AWAKENED, false);
                                     data.putBoolean(SystemData.IS_SYSTEM, false);
                                     data.putString(SystemData.BANK, "");
-
-                                    // ADDED: Clear Affinity on Wipe
                                     data.putString("manhwamod.affinity", "");
 
                                     for (int i = 0; i <= 100; i++) {
@@ -62,7 +60,6 @@ public class SystemCommands {
                                         if (i < 5) data.putInt(SystemData.SLOT_PREFIX + i, 0);
                                     }
 
-                                    // Reset Stats
                                     data.putInt(SystemData.LEVEL, 1);
                                     data.putInt(SystemData.XP, 0);
                                     data.putInt(SystemData.STR, 10);
@@ -85,22 +82,28 @@ public class SystemCommands {
                                 })
                         )
 
-                        // 4. LEARN SKILL
+                        // 4. LEARN SKILL (FIXED: COST FIRST, RECIPE LAST)
                         .then(Commands.literal("learn_skill")
-                                .then(Commands.argument("id", IntegerArgumentType.integer(1, 100000))
-                                        .executes(context -> {
-                                            ServerPlayer player = context.getSource().getPlayerOrException();
-                                            int id = IntegerArgumentType.getInteger(context, "id");
-                                            SystemData.unlockSkill(player, id, "BALL:FIRE:EXPLODE", 50);
-                                            player.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fSkill #" + id + " added to Bank."));
-                                            return 1;
-                                        })
+                                .then(Commands.argument("cost", IntegerArgumentType.integer(1)) // Cost First
+                                        .then(Commands.argument("recipe", StringArgumentType.greedyString()) // Recipe Last (Allows symbols)
+                                                .executes(context -> {
+                                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                                    String recipe = StringArgumentType.getString(context, "recipe");
+                                                    int cost = IntegerArgumentType.getInteger(context, "cost");
+
+                                                    int id = 50000 + player.getRandom().nextInt(50000);
+
+                                                    SystemData.unlockSkill(player, id, recipe, cost);
+                                                    player.sendSystemMessage(Component.literal("§b§l[SYSTEM] §fSkill Learned: " + recipe));
+                                                    return 1;
+                                                })
+                                        )
                                 )
                         )
 
                         // 5. ADD POINTS
                         .then(Commands.literal("add_points")
-                                .then(Commands.argument("amount", IntegerArgumentType.integer(1, 9999))
+                                .then(Commands.argument("amount", IntegerArgumentType.integer(1, 99999))
                                         .executes(context -> {
                                             ServerPlayer player = context.getSource().getPlayerOrException();
                                             int amount = IntegerArgumentType.getInteger(context, "amount");
