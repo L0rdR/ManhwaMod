@@ -29,6 +29,7 @@ public class ManhwaMod {
 
     public static final RegistryObject<Item> SYSTEM_KEY = ITEMS.register("system_key",
             () -> new SystemKeyItem(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item> SKILL_ORB = ITEMS.register("skill_orb", () -> new SkillOrbItem(new Item.Properties()));
 
     public static final RegistryObject<Item> MANA_CRYSTAL = ITEMS.register("mana_crystal",
             () -> new ManaCrystalItem(new Item.Properties().stacksTo(1)));
@@ -40,6 +41,7 @@ public class ManhwaMod {
                     .displayItems((params, output) -> {
                         output.accept(SYSTEM_KEY.get());
                         output.accept(MANA_CRYSTAL.get());
+                        output.accept(SKILL_ORB.get());
                     })
                     .build());
 
@@ -72,6 +74,7 @@ public class ManhwaMod {
         if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
             event.accept(SYSTEM_KEY);
             event.accept(MANA_CRYSTAL);
+            event.accept(SKILL_ORB);
         }
     }
 }

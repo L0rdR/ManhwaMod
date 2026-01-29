@@ -80,6 +80,12 @@ public class Messages {
                 .encoder(PacketBuyItem::toBytes)
                 .consumerMainThread(PacketBuyItem::handle)
                 .add();
+        // this is for extracting skills to skill orb (CLient -> Server)
+        net.messageBuilder(PacketExtractSkill.class, id(), NetworkDirection.PLAY_TO_SERVER)
+                .decoder(PacketExtractSkill::new)
+                .encoder(PacketExtractSkill::toBytes)
+                .consumerMainThread(PacketExtractSkill::handle)
+                .add();
     }
 
 }

@@ -1,3 +1,4 @@
+// ... [Imports same as before] ...
 package com.TaylorBros.ManhwaMod;
 
 import net.minecraft.client.gui.GuiGraphics;
@@ -12,17 +13,16 @@ import java.util.Collections;
 import java.util.Comparator;
 
 public class HunterPhoneScreen extends Screen {
+    // ... [Variables same as before] ...
     private int currentApp = 0;
     private int multiplier = 1;
     private int scrollOffset = 0;
     private static final int VISIBLE_ROWS = 5;
     private int selectedSkillId = -1;
 
-    // SORTING STATE
     private enum SortMode { ID("ID"), RANK_DESC("Best"), RANK_ASC("Worst"); final String label; SortMode(String l) { this.label = l; } }
     private SortMode currentSort = SortMode.RANK_DESC;
 
-    // COLORS
     private static final int COL_CASE_BG = 0xFF050510;
     private static final int COL_CASE_BORDER = 0xFF00AAFF;
     private static final int COL_SCREEN_BG = 0xAA001122;
@@ -44,7 +44,7 @@ public class HunterPhoneScreen extends Screen {
         Player player = this.minecraft.player;
         if (player == null) return;
 
-        // --- HOME SCREEN ---
+        // HOME
         if (currentApp == 0) {
             this.addRenderableWidget(new AppIcon(cx - 50, cy - 50, 0xFFCC0000, "STATUS", button -> switchApp(1)));
             this.addRenderableWidget(new AppIcon(cx + 10, cy - 50, 0xFF0055FF, "SKILLS", button -> switchApp(2)));
@@ -52,22 +52,16 @@ public class HunterPhoneScreen extends Screen {
                 this.addRenderableWidget(new AppIcon(cx - 50, cy + 10, 0xFFFFAA00, "QUEST", button -> switchApp(3)));
             }
             this.addRenderableWidget(new AppIcon(cx + 10, cy + 10, 0xFF00AA00, "MAP", button -> switchApp(4)));
-
-            // NEW STORE APP ICON (Purple)
             this.addRenderableWidget(new AppIcon(cx - 20, cy + 50, 0xFFAA00FF, "STORE", button -> switchApp(5)));
         }
 
-        // --- STATUS APP ---
+        // STATUS
         if (currentApp == 1) {
             int points = player.getPersistentData().getInt(SystemData.POINTS);
             if (points > 0) {
-                int startY = cy - 40;
-                int gap = 12;
-                int buttonX = cx + 60;
+                int startY = cy - 40; int gap = 12; int buttonX = cx + 60;
                 this.addRenderableWidget(Button.builder(Component.literal("x" + multiplier), b -> {
-                    if (multiplier == 1) multiplier = 10;
-                    else if (multiplier == 10) multiplier = 100;
-                    else multiplier = 1;
+                    if (multiplier == 1) multiplier = 10; else if (multiplier == 10) multiplier = 100; else multiplier = 1;
                     b.setMessage(Component.literal("x" + multiplier));
                 }).bounds(cx + 45, startY - 20, 30, 15).build());
 
@@ -79,8 +73,9 @@ public class HunterPhoneScreen extends Screen {
             }
         }
 
-        // --- SKILLS APP ---
+        // SKILLS APP
         if (currentApp == 2) {
+            // Sort Button
             this.addRenderableWidget(Button.builder(Component.literal("Sort: " + currentSort.label), b -> {
                 switch (currentSort) {
                     case RANK_DESC -> currentSort = SortMode.RANK_ASC;
@@ -90,40 +85,41 @@ public class HunterPhoneScreen extends Screen {
                 b.setMessage(Component.literal("Sort: " + currentSort.label));
                 this.scrollOffset = 0;
             }).bounds(cx + 35, cy - 83, 45, 12).build());
+
+            // --- NEW: EXTRACT BUTTON ---
+            // Small button at bottom right
+            this.addRenderableWidget(Button.builder(Component.literal("Crystallize"), b -> {
+                if (selectedSkillId != -1) {
+                    // Send Packet to Extract
+                    Messages.sendToServer(new PacketExtractSkill(selectedSkillId));
+                    // Reset selection to prevent crash
+                    selectedSkillId = -1;
+                    // Refresh screen
+                    this.init();
+                } else {
+                    player.displayClientMessage(Component.literal("§cSelect a Skill to Crystallize."), true);
+                }
+            }).bounds(cx + 20, cy + 95, 60, 14).tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Converts skill to Orb. Requires Blank Orb."))).build());
         }
 
-        // --- STORE APP (New) ---
+        // STORE APP
         if (currentApp == 5) {
-            int btnX = cx - 60;
-            int btnY = cy - 40;
-
-            // Buy Skill
-            this.addRenderableWidget(Button.builder(Component.literal("Mystery Skill (10 Pts)"), b ->
-                    Messages.sendToServer(new PacketBuyItem(0))).bounds(btnX, btnY, 120, 20).build());
-
-            // Buy Mana
-            this.addRenderableWidget(Button.builder(Component.literal("Mana Elixir (5 Pts)"), b ->
-                    Messages.sendToServer(new PacketBuyItem(1))).bounds(btnX, btnY + 25, 120, 20).build());
-
-            // Gamble
-            this.addRenderableWidget(Button.builder(Component.literal("Gamble Box (1 Pt)"), b ->
-                    Messages.sendToServer(new PacketBuyItem(2))).bounds(btnX, btnY + 50, 120, 20).build());
+            int btnX = cx - 60; int btnY = cy - 40;
+            this.addRenderableWidget(Button.builder(Component.literal("Mystery Skill (10 Pts)"), b -> Messages.sendToServer(new PacketBuyItem(0))).bounds(btnX, btnY, 120, 20).build());
+            this.addRenderableWidget(Button.builder(Component.literal("Mana Elixir (5 Pts)"), b -> Messages.sendToServer(new PacketBuyItem(1))).bounds(btnX, btnY + 25, 120, 20).build());
+            this.addRenderableWidget(Button.builder(Component.literal("Gamble Box (1 Pt)"), b -> Messages.sendToServer(new PacketBuyItem(2))).bounds(btnX, btnY + 50, 120, 20).build());
         }
 
-        // HOME BUTTON
+        // HOME BTN
         this.addRenderableWidget(Button.builder(Component.literal(""), button -> {
-            if (currentApp == 0) this.onClose();
-            else switchApp(0);
+            if (currentApp == 0) this.onClose(); else switchApp(0);
         }).bounds(cx - 20, cy + 98, 40, 8).build());
     }
 
-    // [Helper methods for Stats, Sorting, etc. kept same as before]
-    private Button createStatBtn(int x, int y, String stat) {
-        return Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat(stat, multiplier))).bounds(x, y, 15, 10).build();
-    }
+    // ... [Helpers kept same] ...
+    private Button createStatBtn(int x, int y, String stat) { return Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat(stat, multiplier))).bounds(x, y, 15, 10).build(); }
     private void switchApp(int appId) { this.currentApp = appId; this.scrollOffset = 0; this.selectedSkillId = -1; this.init(); }
     private void addButtonToGroup(Button b) { this.addRenderableWidget(b); this.statusButtons.add(b); }
-
     private List<Integer> getSortedSkills(Player p) {
         List<Integer> skills = new ArrayList<>(SystemData.getUnlockedSkills(p));
         if (currentSort == SortMode.ID) return skills;
@@ -150,10 +146,8 @@ public class HunterPhoneScreen extends Screen {
 
     @Override public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics);
-        int cx = this.width / 2;
-        int cy = this.height / 2;
-        Player p = this.minecraft.player;
-        if (p == null) return;
+        int cx = this.width / 2; int cy = this.height / 2;
+        Player p = this.minecraft.player; if (p == null) return;
 
         guiGraphics.fill(cx - 85, cy - 110, cx + 85, cy + 115, COL_CASE_BG);
         guiGraphics.renderOutline(cx - 85, cy - 110, 170, 225, COL_CASE_BORDER);
@@ -169,17 +163,16 @@ public class HunterPhoneScreen extends Screen {
             case 2 -> renderSkillsApp(guiGraphics, cx, cy, p, mouseX, mouseY);
             case 3 -> renderPlaceholderApp(guiGraphics, cx, cy, "DAILY QUEST");
             case 4 -> renderPlaceholderApp(guiGraphics, cx, cy, "DUNGEON MAP");
-            case 5 -> renderStoreApp(guiGraphics, cx, cy, p); // STORE RENDER
+            case 5 -> renderStoreApp(guiGraphics, cx, cy, p);
         }
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
-    // --- RENDER METHODS ---
+    // [Render methods]
     private void renderHomeScreen(GuiGraphics guiGraphics, int cx, int cy, Player p) {
         guiGraphics.drawCenteredString(this.font, "§bHUNTER PHONE", cx, cy - 75, COL_TEXT_WHITE);
         guiGraphics.drawCenteredString(this.font, "§7Welcome, " + p.getName().getString() + ".", cx, cy - 65, 0xFFAAAAAA);
     }
-
     private void renderStatusApp(GuiGraphics guiGraphics, int cx, int cy, Player p) {
         int str = p.getPersistentData().getInt(SystemData.STR);
         int agi = p.getPersistentData().getInt(SystemData.SPD);
@@ -193,7 +186,6 @@ public class HunterPhoneScreen extends Screen {
         guiGraphics.drawCenteredString(this.font, "§e" + p.getName().getString(), cx, cy - 80, COL_TEXT_WHITE);
         guiGraphics.drawCenteredString(this.font, "§7Rank: §b" + rank, cx, cy - 70, COL_TEXT_WHITE);
         guiGraphics.drawCenteredString(this.font, "Affinity: " + aff.color + aff.name, cx, cy - 62, 0xFFFFFFFF);
-
         int startY = cy - 40; int gap = 12; int textX = cx - 70;
         drawStatRow(guiGraphics, "Strength:", str, textX, startY, 0xFFFF5555);
         drawStatRow(guiGraphics, "Agility:", agi, textX, startY + gap, 0xFF55FF55);
@@ -202,10 +194,7 @@ public class HunterPhoneScreen extends Screen {
         drawStatRow(guiGraphics, "Defense:", def, textX, startY + gap*4, 0xFF5555FF);
         guiGraphics.drawCenteredString(this.font, "§dPoints: " + points, cx, cy + 30, COL_TEXT_WHITE);
     }
-
-    private void drawStatRow(GuiGraphics g, String label, int val, int x, int y, int color) {
-        g.drawString(this.font, label, x, y, 0xFFAAAAAA); g.drawString(this.font, String.valueOf(val), x + 60, y, color);
-    }
+    private void drawStatRow(GuiGraphics g, String label, int val, int x, int y, int color) { g.drawString(this.font, label, x, y, 0xFFAAAAAA); g.drawString(this.font, String.valueOf(val), x + 60, y, color); }
 
     private void renderSkillsApp(GuiGraphics guiGraphics, int cx, int cy, Player p, int mouseX, int mouseY) {
         guiGraphics.drawString(this.font, "§3SKILL DATABASE", cx - 75, cy - 80, COL_TEXT_WHITE);
@@ -217,38 +206,29 @@ public class HunterPhoneScreen extends Screen {
         for (int i = 0; i < VISIBLE_ROWS; i++) {
             int dataIndex = i + scrollOffset;
             if (dataIndex >= skills.size()) break;
-
             int skillId = skills.get(dataIndex);
             int yPos = startY + (i * 25);
             String fullData = p.getPersistentData().getString(SystemData.RECIPE_PREFIX + skillId);
             int cost = p.getPersistentData().getInt(SystemData.COST_PREFIX + skillId);
             String displayName = fullData.contains("|") ? fullData.split("\\|")[1] : SkillEngine.getSkillName(fullData);
-
             int nameColor = SkillRanker.getColor(fullData);
             SkillRanker.Rank rank = SkillRanker.getRank(fullData);
             String textToShow = "[" + rank.label + "] " + displayName;
             String costText = cost + " MP";
-
             boolean isHovered = (mouseX >= cx - 75 && mouseX <= cx + 75 && mouseY >= yPos && mouseY <= yPos + 22);
             boolean isSelected = (skillId == selectedSkillId);
             int bgColor = isSelected ? 0xFF004400 : (isHovered ? 0xFF002244 : 0x44000000);
             int outlineColor = isSelected ? 0xFF00FF00 : 0xFF000000;
-
             guiGraphics.fill(cx - 75, yPos, cx + 75, yPos + 22, bgColor);
             guiGraphics.renderOutline(cx - 75, yPos, 150, 22, outlineColor);
-
             int costWidth = this.font.width(costText);
             guiGraphics.drawString(this.font, costText, cx + 70 - costWidth, yPos + 7, COL_TEXT_GLOW);
-
             int availableWidth = 135 - costWidth; int nameWidth = this.font.width(textToShow); float scale = 0.8f;
             if (nameWidth * scale > availableWidth) scale = (float) availableWidth / nameWidth;
-
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(cx - 70, yPos + 7, 0); guiGraphics.pose().scale(scale, scale, 1.0f);
-            guiGraphics.drawString(this.font, textToShow, 0, 0, nameColor);
-            guiGraphics.pose().popPose();
+            guiGraphics.pose().pushPose(); guiGraphics.pose().translate(cx - 70, yPos + 7, 0); guiGraphics.pose().scale(scale, scale, 1.0f);
+            guiGraphics.drawString(this.font, textToShow, 0, 0, nameColor); guiGraphics.pose().popPose();
         }
-        // Equip slots
+
         int slotY = cy + 70; int slotSize = 20; int startX = cx - 70; int spacing = 30;
         guiGraphics.drawCenteredString(this.font, "§8[ Equip Slot ]", cx, slotY - 10, 0xFFAAAAAA);
         for (int i = 0; i < 5; i++) {
@@ -266,29 +246,11 @@ public class HunterPhoneScreen extends Screen {
         guiGraphics.drawCenteredString(this.font, "§dSYSTEM STORE", cx, cy - 80, COL_TEXT_WHITE);
         int points = SystemData.getPoints(p);
         guiGraphics.drawCenteredString(this.font, "Balance: §e" + points + " Pts", cx, cy - 65, 0xFFFFFFFF);
-
         guiGraphics.drawCenteredString(this.font, "§7Spend points to grow stronger.", cx, cy + 85, 0xFFAAAAAA);
     }
-
-    private void renderPlaceholderApp(GuiGraphics guiGraphics, int cx, int cy, String title) {
-        guiGraphics.drawCenteredString(this.font, "§l" + title, cx, cy - 50, COL_TEXT_WHITE);
-        guiGraphics.drawCenteredString(this.font, "Locked.", cx, cy, 0xFF555555);
-    }
-
+    private void renderPlaceholderApp(GuiGraphics guiGraphics, int cx, int cy, String title) { guiGraphics.drawCenteredString(this.font, "§l" + title, cx, cy - 50, COL_TEXT_WHITE); guiGraphics.drawCenteredString(this.font, "Locked.", cx, cy, 0xFF555555); }
     @Override public boolean isPauseScreen() { return false; }
-
-    private class AppIcon extends Button {
-        private final int color; private final String label;
-        public AppIcon(int x, int y, int color, String label, OnPress onPress) { super(x, y, 32, 32, Component.empty(), onPress, DEFAULT_NARRATION); this.color = color; this.label = label; }
-        @Override public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-            int renderColor = isHovered ? 0xFFFFFFFF : color;
-            guiGraphics.fill(getX(), getY(), getX() + width, getY() + height, 0xDD000000);
-            guiGraphics.renderOutline(getX(), getY(), width, height, renderColor);
-            if (isHovered) guiGraphics.drawCenteredString(Minecraft.getInstance().font, label, getX() + width / 2, getY() + height + 4, COL_TEXT_WHITE);
-            else guiGraphics.drawCenteredString(Minecraft.getInstance().font, label.substring(0, 1), getX() + width / 2, getY() + height / 2 - 4, renderColor);
-        }
-    }
-
+    private class AppIcon extends Button { private final int color; private final String label; public AppIcon(int x, int y, int color, String label, OnPress onPress) { super(x, y, 32, 32, Component.empty(), onPress, DEFAULT_NARRATION); this.color = color; this.label = label; } @Override public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) { int renderColor = isHovered ? 0xFFFFFFFF : color; guiGraphics.fill(getX(), getY(), getX() + width, getY() + height, 0xDD000000); guiGraphics.renderOutline(getX(), getY(), width, height, renderColor); if (isHovered) guiGraphics.drawCenteredString(Minecraft.getInstance().font, label, getX() + width / 2, getY() + height + 4, COL_TEXT_WHITE); else guiGraphics.drawCenteredString(Minecraft.getInstance().font, label.substring(0, 1), getX() + width / 2, getY() + height / 2 - 4, renderColor); } }
     @Override public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (super.mouseClicked(mouseX, mouseY, button)) return true;
         if (currentApp == 2) {
