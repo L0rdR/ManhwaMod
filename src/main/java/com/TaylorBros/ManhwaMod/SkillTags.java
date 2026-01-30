@@ -1,49 +1,28 @@
 package com.TaylorBros.ManhwaMod;
 
 public class SkillTags {
-
-    // These determine the movement and particle pattern
     public enum Shape {
-        PUNCH, DASH,                      // Tier 1: Basics
-        SLASH, VERT_SLASH, HORIZ_SLASH,   // Tier 2: Melee Arts
-        SINGLE, BEAM, BALL, RAY,          // Tier 3: Projectiles
-        CONE, IMPACT_BURST, FLARE,        // Tier 4: Explosives/AOE
-        BOOMERANG, WALL, SPIKES,          // Tier 5: Utility/Zone
-        BLINK_STRIKE,                     // Tier 6: High Speed
-        BARRAGE, BARRAGE_PUNCH,           // Tier 7: Ultimates
-        SLASH_BARRAGE, RAIN, AOE          // Tier 7: Ultimates
-    }
-  
-    // These determine the base particle and main sound
-    public enum Element {
-        FIRE,
-        ICE,
-        LIGHTNING,
-        VOID,
-        FORCE,
-        WATER,
-        EARTH,
-        LAVA,
-        LIGHT,
-        WIND,
-        SHADOW,
-        ACID,
-        POISON,
-        NONE,
+        PUNCH, DASH,
+        SLASH, VERT_SLASH, HORIZ_SLASH,
+        SINGLE, BEAM, BALL, RAY,
+        CONE, IMPACT_BURST, FLARE,
+        BOOMERANG, WALL, SPIKES,
+        BLINK_STRIKE,
+        BARRAGE, BARRAGE_PUNCH,
+        SLASH_BARRAGE, RAIN, AOE,
+
+        // --- NEW VISUAL SHAPES ---
+        SMOKE, SPARK, BOLT, CIRCLE, STAR
     }
 
-    // These determine the special status effect (Potion effects/Explosions)
+    public enum Element {
+        FIRE, ICE, LIGHTNING, VOID, FORCE, WATER, EARTH,
+        LAVA, LIGHT, WIND, SHADOW, ACID, POISON, NONE
+    }
+
     public enum Modifier {
-        EXPLODE,
-        STUN,
-        LIFESTEAL,
-        WEAKEN,
-        BOUNCE,
-        CHAIN,
-        VAMPIRE,
-        GRAVITY,
-        WITHER,
-        EXECUTE,
-        NONE
+        EXPLODE, STUN, LIFESTEAL, WEAKEN, BOUNCE, CHAIN,
+        VAMPIRE, GRAVITY, WITHER, EXECUTE, HOMING, PIERCE,
+        BLIND, SLOW, NONE
     }
 }

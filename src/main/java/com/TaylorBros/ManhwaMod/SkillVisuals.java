@@ -1,185 +1,307 @@
 package com.TaylorBros.ManhwaMod;
 
-import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.world.phys.Vec3;
+
+// LODESTONE IMPORTS
+import team.lodestar.lodestone.systems.particle.builder.WorldParticleBuilder;
+import team.lodestar.lodestone.systems.particle.data.GenericParticleData;
+import team.lodestar.lodestone.systems.particle.data.color.ColorParticleData;
+import team.lodestar.lodestone.systems.particle.data.spin.SpinParticleData;
+import team.lodestar.lodestone.systems.particle.render_types.LodestoneWorldParticleRenderType;
+
+import java.awt.*;
 
 public class SkillVisuals {
 
     public static void play(Player player, String skillName, String fullRecipeData) {
-        if (!(player.level() instanceof ServerLevel level)) return;
+        Level level = player.level();
 
-        // 1. PARSE DATA
+        // 1. DATA PARSING
         String[] parts = fullRecipeData.split(":");
         String shapeName = parts.length > 0 ? parts[0].trim().toUpperCase() : "SINGLE";
-
+        String elName = parts.length > 1 ? parts[1].split("\\|")[0].trim().toUpperCase() : "FORCE";
         SkillRanker.Rank rank = SkillRanker.getRank(fullRecipeData);
-        float rankScale = 1.0f + (rank.ordinal() * 0.5f);
+        float scale = 1.0f + (rank.ordinal() * 0.5f);
 
-        Vec3 pos = player.position().add(0, 1.5, 0);
-        Vec3 look = player.getLookAngle();
+        // 2. MATH
+        Vec3 eyePos = player.getEyePosition();
+        Vec3 look = player.getLookAngle().normalize();
+        Vec3 right = look.cross(new Vec3(0, 1, 0)).normalize();
 
-        // 2. PLACEHOLDER PARTICLES (Clean Vanilla Options)
-        // We will replace these with Lodestone VFX builders later.
-        ParticleOptions mainParticle = ParticleTypes.ELECTRIC_SPARK; // Default sharp energy
-        ParticleOptions coreParticle = ParticleTypes.END_ROD; // Bright white center
-        ParticleOptions heavyDebris = new BlockParticleOption(ParticleTypes.BLOCK, Blocks.STONE.defaultBlockState());
+        // 3. COLORS & VANILLA PARTICLES
+        Color c1 = getElementColor(elName);
+        Color c2 = getFadeColor(elName);
+        SimpleParticleType vanillaParticle = getVanillaParticle(elName);
 
-        // Select particle based on Rank to keep it looking okay for now
-        if (rank.ordinal() >= SkillRanker.Rank.A.ordinal()) mainParticle = ParticleTypes.SONIC_BOOM;
-        else if (rank.ordinal() >= SkillRanker.Rank.C.ordinal()) mainParticle = ParticleTypes.DRAGON_BREATH;
+        // 4. SOUND EFFECTS
+        playRankSound(level, player, rank, shapeName);
 
-        // 3. SOUND & SCREEN SHAKE
-        playRankSound(level, player, rank);
-        if (rank.ordinal() >= SkillRanker.Rank.A.ordinal()) {
-            float shake = rank.ordinal() >= SkillRanker.Rank.S.ordinal() ? 1.5f : 0.5f;
-            int radius = rank.ordinal() >= SkillRanker.Rank.S.ordinal() ? 900 : 100;
-            for (Player p : level.players()) {
-                if (p.distanceToSqr(player) < radius) {
-                    Messages.sendToPlayer(new PacketScreenShake(shake, 20), (ServerPlayer) p);
+        if (level instanceof ServerLevel) {
+            // Screen Shake for high ranks
+            if (rank.ordinal() >= SkillRanker.Rank.A.ordinal()) {
+                float shake = rank.ordinal() >= SkillRanker.Rank.S.ordinal() ? 1.5f : 0.5f;
+                for (Player p : level.players()) {
+                    if (p.distanceToSqr(player) < 900) Messages.sendToPlayer(new PacketScreenShake(shake, 20), (ServerPlayer) p);
                 }
             }
         }
 
-        // 4. GEOMETRY (Using the placeholders)
+        // ==================================================
+        //            MASTER VISUAL LOGIC
+        // ==================================================
+
+        // --- 1. SLASHES (Crescent Shape) ---
         if (shapeName.contains("SLASH")) {
             boolean vert = shapeName.contains("VERT");
-            spawnFlyingArc(level, pos, look, mainParticle, 3.5 * rankScale, vert);
-            level.sendParticles(ParticleTypes.SWEEP_ATTACK, pos.x + look.x, pos.y + look.y, pos.z + look.z, 1, look.x, look.y, look.z, 0);
-        }
-        else if (shapeName.contains("BEAM") || shapeName.contains("RAY")) {
-            spawnDenseBeam(level, pos, look, coreParticle, 20.0, 0.2 * rankScale);
-            spawnHelix(level, pos, look, mainParticle, 15.0, 0.8 * rankScale);
-            spawnShockwave(level, player.position(), mainParticle, 2.0 * rankScale);
-        }
-        else if (shapeName.contains("BALL") || shapeName.contains("FLARE") || shapeName.contains("BOOMERANG")) {
-            spawnImplosion(level, pos.add(look), mainParticle, 1.5 * rankScale);
-            spawnSphere(level, pos.add(look), coreParticle, 0.4 * rankScale, 15);
-            spawnBurst(level, pos, ParticleTypes.CLOUD, 5, 0.1);
-        }
-        else if (shapeName.contains("AOE") || shapeName.contains("IMPACT") || shapeName.contains("NOVA")) {
-            spawnShockwave(level, player.position(), mainParticle, 5.0 * rankScale);
-            spawnPillar(level, player.position(), coreParticle, 4.0 * rankScale, 20);
-            if (rank.ordinal() >= SkillRanker.Rank.B.ordinal()) {
-                spawnDebris(level, player.position(), heavyDebris, 3.0 * rankScale);
+            boolean horiz = shapeName.contains("HORIZ");
+
+            double speed = 2.0;
+            int lifetime = 25;
+
+            // Spawn slightly forward so it doesn't clip inside head
+            Vec3 spawnPos = eyePos.add(look.scale(1.0));
+
+            // ROTATION FIX: 0.0f makes the Apex (Curve) face forward.
+            float rotationCorrection = 0.0f;
+
+            float yawRad = (float) Math.toRadians(-player.getYRot());
+            float baseAngle = vert ? 0.0f : (horiz ? 1.57f : 0.78f);
+            float finalAngle = yawRad + baseAngle + rotationCorrection;
+
+            // Smaller, sharper size
+            float width = 1.5f * scale;
+            float length = 3.0f * scale;
+
+            // Lodestone Slash
+            WorldParticleBuilder.create(ModParticles.CRESCENT_SLASH.get())
+                    .setTransparencyData(GenericParticleData.create(1.0f, 0.0f).build())
+                    .setScaleData(GenericParticleData.create(width, length).build())
+                    .setColorData(ColorParticleData.create(c1, c2).build())
+                    .setSpinData(SpinParticleData.create(0, 0).setSpinOffset(finalAngle).build())
+                    .setMotion(look.x * speed, look.y * speed, look.z * speed)
+                    .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)
+                    .setLifetime(lifetime)
+                    .spawn(level, spawnPos.x, spawnPos.y, spawnPos.z);
+
+            // Vanilla Trail
+            for (int i = 0; i < 5; i++) {
+                level.addParticle(vanillaParticle, spawnPos.x, spawnPos.y, spawnPos.z, look.x * speed * 0.5, look.y * speed * 0.5, look.z * speed * 0.5);
             }
         }
+
+        // --- 2. LIGHTNING BOLT (Vertical Strike) ---
+        else if (shapeName.contains("BOLT")) {
+            Vec3 strikePos = eyePos.add(look.scale(4.0)); // 4 blocks away
+
+            // Core Bolt
+            WorldParticleBuilder.create(ModParticles.LIGHTNING_BOLT.get())
+                    .setTransparencyData(GenericParticleData.create(1.0f, 0.0f).build())
+                    .setScaleData(GenericParticleData.create(1.0f * scale, 8.0f * scale).build()) // Tall
+                    .setColorData(ColorParticleData.create(c1, Color.WHITE).build())
+                    .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)
+                    .setLifetime(8)
+                    .spawn(level, strikePos.x, strikePos.y + 1, strikePos.z);
+
+            // Vanilla Sparks at impact point
+            for(int i=0; i<10; i++) {
+                level.addParticle(ParticleTypes.ELECTRIC_SPARK, strikePos.x, strikePos.y, strikePos.z, (Math.random()-0.5), (Math.random()-0.5), (Math.random()-0.5));
+            }
+        }
+
+        // --- 3. MAGIC CIRCLE (Floor Rune) ---
+        else if (shapeName.contains("CIRCLE") || shapeName.contains("AOE")) {
+            Vec3 floorPos = player.position().add(0, 0.1, 0); // At feet
+
+            // The Rune Ring
+            WorldParticleBuilder.create(ModParticles.MAGIC_CIRCLE.get())
+                    .setTransparencyData(GenericParticleData.create(0.8f, 0.0f).build())
+                    .setScaleData(GenericParticleData.create(4.0f * scale, 4.0f * scale).build())
+                    .setColorData(ColorParticleData.create(c1, c2).build())
+                    .setSpinData(SpinParticleData.create(0.05f, 0.1f).build())
+                    .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)
+                    // IMPORTANT: To make it flat, we rotate the emitter, but Lodestone particles are billboards.
+                    // For a flat circle, you usually need a specialized render type or model.
+                    // However, we can fake it by spawning a "Cloud" of particles in a ring shape instead if the PNG doesn't lay flat.
+                    // For this specific texture, assuming it's billboarded, we rely on the 2D look facing the player.
+                    .setLifetime(40)
+                    .spawn(level, floorPos.x, floorPos.y + 1, floorPos.z);
+
+            // Upward Energy Column
+            for(int i=0; i<8; i++) {
+                WorldParticleBuilder.create(ModParticles.SOFT_GLOW.get())
+                        .setScaleData(GenericParticleData.create(1.0f, 0).build())
+                        .setColorData(ColorParticleData.create(c1, new Color(0,0,0,0)).build())
+                        .setMotion(0, 0.3, 0)
+                        .setLifetime(25)
+                        .spawn(level, floorPos.x + (Math.random()-0.5)*3, floorPos.y, floorPos.z + (Math.random()-0.5)*3);
+            }
+        }
+
+        // --- 4. SMOKE / WALL (Thick Cloud) ---
+        else if (shapeName.contains("SMOKE") || shapeName.contains("WALL")) {
+            Vec3 center = eyePos.add(look.scale(3.0));
+            for(int i=-2; i<=2; i++) {
+                Vec3 p = center.add(right.scale(i * 1.5));
+                WorldParticleBuilder.create(ModParticles.SMOKE_CLOUD.get())
+                        .setScaleData(GenericParticleData.create(4.0f * scale, 6.0f * scale).build())
+                        .setColorData(ColorParticleData.create(c1, Color.BLACK).build())
+                        .setTransparencyData(GenericParticleData.create(0.8f, 0.0f).build())
+                        .setSpinData(SpinParticleData.create(0.05f, 0.1f).build())
+                        .setLifetime(60)
+                        .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)
+                        .spawn(level, p.x, p.y, p.z);
+            }
+        }
+
+        // --- 5. SPARK / PUNCH (Burst) ---
+        else if (shapeName.contains("SPARK") || shapeName.contains("PUNCH") || shapeName.contains("STAR")) {
+            Vec3 pos = eyePos.add(look.scale(1.5));
+
+            // Star Flare Core
+            WorldParticleBuilder.create(ModParticles.STAR_FLARE.get())
+                    .setColorData(ColorParticleData.create(c1, Color.WHITE).build())
+                    .setScaleData(GenericParticleData.create(2.0f * scale, 0).build())
+                    .setLifetime(10)
+                    .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)
+                    .spawn(level, pos.x, pos.y, pos.z);
+
+            // Explosive Sparks
+            for(int i=0; i<15; i++) {
+                double mx = (Math.random()-0.5); double my = (Math.random()-0.5); double mz = (Math.random()-0.5);
+                WorldParticleBuilder.create(ModParticles.SHARP_SPARK.get())
+                        .setColorData(ColorParticleData.create(c1, c2).build())
+                        .setScaleData(GenericParticleData.create(0.5f * scale, 0).build())
+                        .setMotion(mx, my, mz)
+                        .setLifetime(10)
+                        .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)
+                        .spawn(level, pos.x, pos.y, pos.z);
+            }
+        }
+
+        // --- 6. BEAM (Ray) ---
+        else if (shapeName.contains("BEAM") || shapeName.contains("RAY")) {
+            for(int i=0; i<25; i++) {
+                Vec3 p = eyePos.add(look.scale(i * 1.2));
+                WorldParticleBuilder.create(ModParticles.SOFT_GLOW.get())
+                        .setScaleData(GenericParticleData.create(0.8f * scale, 0).build())
+                        .setColorData(ColorParticleData.create(c1, c2).build())
+                        .setLifetime(10)
+                        .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)
+                        .spawn(level, p.x, p.y, p.z);
+            }
+            // Add helix swirl
+            spawnHelix(level, eyePos, look, c2, scale);
+        }
+
+        // --- 7. BALL / FLARE (Projectile) ---
+        else if (shapeName.contains("BALL") || shapeName.contains("FLARE") || shapeName.contains("SINGLE")) {
+            Vec3 pos = eyePos.add(look.scale(2.0));
+            double speed = 1.0;
+
+            WorldParticleBuilder.create(ModParticles.SHOCKWAVE_RING.get())
+                    .setScaleData(GenericParticleData.create(3.0f * scale, 0.0f).build())
+                    .setColorData(ColorParticleData.create(c1, c2).build())
+                    .setMotion(look.x * speed, look.y * speed, look.z * speed)
+                    .setLifetime(20)
+                    .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)
+                    .spawn(level, pos.x, pos.y, pos.z);
+
+            WorldParticleBuilder.create(ModParticles.SOFT_GLOW.get())
+                    .setScaleData(GenericParticleData.create(1.0f * scale, 2.0f * scale).build())
+                    .setColorData(ColorParticleData.create(Color.WHITE, c1).build())
+                    .setMotion(look.x * speed, look.y * speed, look.z * speed)
+                    .setLifetime(20)
+                    .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)
+                    .spawn(level, pos.x, pos.y, pos.z);
+
+            level.addParticle(vanillaParticle, pos.x, pos.y, pos.z, look.x * 0.5, look.y * 0.5, look.z * 0.5);
+        }
+
+        // --- DEFAULT FALLBACK ---
         else {
-            spawnBurst(level, pos.add(look), mainParticle, (int)(20 * rankScale), 0.3);
+            spawnHelix(level, eyePos, look, c1, scale);
         }
     }
 
-    // --- GEOMETRY ENGINES (Kept the physics, removed the colors) ---
+    // --- HELPER METHODS ---
 
-    private static void spawnFlyingArc(ServerLevel level, Vec3 start, Vec3 dir, ParticleOptions p, double radius, boolean vertical) {
+    private static void spawnHelix(Level level, Vec3 start, Vec3 dir, Color color, float scale) {
         Vec3 right = dir.cross(new Vec3(0, 1, 0)).normalize();
         Vec3 up = right.cross(dir).normalize();
-        int points = 30;
-        for (int i = 0; i <= points; i++) {
-            double t = (double)i / points;
-            double angle = (t - 0.5) * Math.PI * 0.8;
-            Vec3 offset = vertical
-                    ? dir.scale(Math.cos(angle) * radius * 0.2).add(up.scale(Math.sin(angle) * radius))
-                    : dir.scale(Math.cos(angle) * radius * 0.2).add(right.scale(Math.sin(angle) * radius));
-            level.sendParticles(p, start.x + offset.x, start.y + offset.y, start.z + offset.z, 0, dir.x, dir.y, dir.z, 0.5);
+        for (int i = 0; i < 40; i++) {
+            double angle = i * 0.5;
+            double r = 0.5 * scale;
+            Vec3 off = right.scale(Math.cos(angle)*r).add(up.scale(Math.sin(angle)*r));
+            Vec3 p = start.add(dir.scale(i * 0.5)).add(off);
+            WorldParticleBuilder.create(ModParticles.SHARP_SPARK.get())
+                    .setColorData(ColorParticleData.create(color, Color.BLACK).build())
+                    .setScaleData(GenericParticleData.create(0.2f, 0).build())
+                    .setLifetime(15)
+                    .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)
+                    .spawn(level, p.x, p.y, p.z);
         }
     }
 
-    private static void spawnDenseBeam(ServerLevel level, Vec3 start, Vec3 dir, ParticleOptions p, double length, double width) {
-        int points = (int)(length * 4);
-        for(int i=0; i<points; i++) {
-            Vec3 pos = start.add(dir.scale(i * 0.25));
-            level.sendParticles(p, pos.x, pos.y, pos.z, 1, width, width, width, 0);
+    private static void playRankSound(Level level, Player player, SkillRanker.Rank rank, String shapeName) {
+        // 1. Determine Base Sound by Shape
+        if (shapeName.contains("SLASH")) {
+            level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0f, 1.2f);
+        } else if (shapeName.contains("BOLT")) {
+            level.playSound(null, player.blockPosition(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 0.5f, 1.0f);
+        } else if (shapeName.contains("EXPLODE") || shapeName.contains("IMPACT")) {
+            level.playSound(null, player.blockPosition(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8f, 1.0f);
         }
-    }
 
-    private static void spawnShockwave(ServerLevel level, Vec3 center, ParticleOptions p, double radius) {
-        int count = (int)(radius * 20);
-        for(int i=0; i<count; i++) {
-            double angle = 2 * Math.PI * i / count;
-            level.sendParticles(p, center.x, center.y + 0.2, center.z, 0, Math.cos(angle), 0, Math.sin(angle), 0.5);
-        }
-    }
-
-    private static void spawnImplosion(ServerLevel level, Vec3 center, ParticleOptions p, double radius) {
-        int count = 20;
-        for(int i=0; i<count; i++) {
-            double theta = Math.random() * 2 * Math.PI;
-            double phi = Math.acos(2 * Math.random() - 1);
-            double x = Math.sin(phi) * Math.cos(theta);
-            double y = Math.sin(phi) * Math.sin(theta);
-            double z = Math.cos(phi);
-            level.sendParticles(p, center.x+(x*radius), center.y+(y*radius), center.z+(z*radius), 0, -x, -y, -z, 0.2);
-        }
-    }
-
-    private static void spawnDebris(ServerLevel level, Vec3 center, ParticleOptions p, double radius) {
-        int count = 15;
-        for(int i=0; i<count; i++) {
-            double angle = Math.random() * 2 * Math.PI;
-            double r = Math.random() * radius;
-            level.sendParticles(p, center.x+Math.cos(angle)*r, center.y+0.5, center.z+Math.sin(angle)*r, 1, 0, 0.3, 0, 0.1);
-        }
-    }
-
-    private static void spawnPillar(ServerLevel level, Vec3 center, ParticleOptions p, double height, int density) {
-        for(int i=0; i<density; i++) {
-            double y = Math.random() * height;
-            double angle = Math.random() * 2 * Math.PI;
-            level.sendParticles(p, center.x + Math.cos(angle)*0.5, center.y + y, center.z + Math.sin(angle)*0.5, 1, 0, 0.1, 0, 0);
-        }
-    }
-
-    private static void spawnHelix(ServerLevel level, Vec3 start, Vec3 dir, ParticleOptions p, double length, double radius) {
-        dir = dir.normalize();
-        Vec3 right = dir.cross(new Vec3(0, 1, 0)).normalize();
-        Vec3 up = right.cross(dir).normalize();
-        int steps = (int)(length * 5);
-        for (int i = 0; i < steps; i++) {
-            double dist = i * 0.2;
-            double angle = dist * 2.0;
-            Vec3 core = start.add(dir.scale(dist));
-            double offX = Math.cos(angle) * radius;
-            double offY = Math.sin(angle) * radius;
-            Vec3 pos1 = core.add(right.scale(offX)).add(up.scale(offY));
-            Vec3 pos2 = core.add(right.scale(-offX)).add(up.scale(-offY));
-            level.sendParticles(p, pos1.x, pos1.y, pos1.z, 1, 0, 0, 0, 0);
-            level.sendParticles(p, pos2.x, pos2.y, pos2.z, 1, 0, 0, 0, 0);
-        }
-    }
-
-    private static void spawnSphere(ServerLevel level, Vec3 center, ParticleOptions p, double radius, int count) {
-        for(int i=0; i<count; i++) {
-            double u = Math.random(); double v = Math.random();
-            double theta = 2 * Math.PI * u;
-            double phi = Math.acos(2 * v - 1);
-            double x = Math.sin(phi) * Math.cos(theta);
-            double y = Math.sin(phi) * Math.sin(theta);
-            double z = Math.cos(phi);
-            level.sendParticles(p, center.x+x*radius, center.y+y*radius, center.z+z*radius, 1, 0, 0, 0, 0);
-        }
-    }
-
-    private static void spawnBurst(ServerLevel level, Vec3 pos, ParticleOptions p, int count, double speed) {
-        level.sendParticles(p, pos.x, pos.y, pos.z, count, speed, speed, speed, 0.05);
-    }
-
-    private static void playRankSound(Level level, Player player, SkillRanker.Rank rank) {
+        // 2. Rank Bonus Sound
         if(rank.ordinal() >= SkillRanker.Rank.S.ordinal()) {
-            level.playSound(null, player.blockPosition(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.5f, 0.5f);
-            level.playSound(null, player.blockPosition(), SoundEvents.WITHER_SPAWN, SoundSource.PLAYERS, 0.5f, 1.0f);
+            level.playSound(null, player.blockPosition(), SoundEvents.WITHER_SPAWN, SoundSource.PLAYERS, 0.2f, 1.0f);
         } else if (rank.ordinal() >= SkillRanker.Rank.B.ordinal()) {
-            level.playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0f, 1.0f);
-        } else {
-            level.playSound(null, player.blockPosition(), SoundEvents.FLINTANDSTEEL_USE, SoundSource.PLAYERS, 1.0f, 1.5f);
+            level.playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.5f, 1.5f);
         }
+    }
+
+    private static Color getElementColor(String elName) {
+        return switch (elName) {
+            case "FIRE", "LAVA" -> new Color(255, 100, 0);
+            case "ICE", "WATER" -> new Color(100, 200, 255);
+            case "LIGHTNING" -> new Color(200, 255, 50);
+            case "VOID", "SHADOW" -> new Color(20, 0, 40);
+            case "FORCE", "LIGHT" -> Color.WHITE;
+            case "POISON", "ACID", "WIND" -> new Color(100, 255, 50);
+            case "EARTH" -> new Color(139, 69, 19);
+            default -> Color.WHITE;
+        };
+    }
+
+    private static Color getFadeColor(String elName) {
+        return switch (elName) {
+            case "FIRE" -> new Color(255, 200, 0);
+            case "VOID" -> new Color(100, 0, 200);
+            case "SHADOW" -> new Color(50, 0, 0);
+            case "ICE" -> new Color(200, 255, 255);
+            default -> Color.WHITE;
+        };
+    }
+
+    private static SimpleParticleType getVanillaParticle(String elName) {
+        return switch (elName) {
+            case "FIRE", "LAVA" -> ParticleTypes.FLAME;
+            case "ICE", "WATER" -> ParticleTypes.SNOWFLAKE;
+            case "LIGHTNING" -> ParticleTypes.ELECTRIC_SPARK;
+            case "VOID", "SHADOW" -> ParticleTypes.SQUID_INK;
+            case "POISON", "ACID" -> ParticleTypes.ENTITY_EFFECT;
+            case "EARTH" -> ParticleTypes.CRIT;
+            case "WIND" -> ParticleTypes.CLOUD;
+            case "FORCE" -> ParticleTypes.ENCHANTED_HIT;
+            default -> ParticleTypes.CRIT;
+        };
     }
 }

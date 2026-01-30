@@ -44,9 +44,8 @@ public class SkillEngine {
             // playSkillSounds(player, element, modifier);
             // player.serverLevel().sendParticles(...)
 
-            // --- NEW ROBUST VISUALS ADDED ---
-            // This reads the Rank from the recipe and plays the correct Sphere/Helix/Ring animation
-            SkillVisuals.play(player, getSkillName(recipe), recipe);
+            // Send packet to all nearby players so they SEE the slash
+            Messages.sendToAllTracking(new PacketPlayEffect(player.getId(), recipe), player);
             switch (shape) {
                 case BALL -> runBall(player, p1, p2, modifier, multi, element, intelligence);
                 case RAY -> runRay(player, p1, p2, modifier, multi, element, intelligence);

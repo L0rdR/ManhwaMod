@@ -47,6 +47,7 @@ public class ManhwaMod {
 
     public ManhwaMod() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        ModParticles.register(modEventBus);
 
         Messages.register();
         ITEMS.register(modEventBus);

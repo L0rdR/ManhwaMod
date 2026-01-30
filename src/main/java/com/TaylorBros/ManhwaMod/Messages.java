@@ -15,6 +15,11 @@ public class Messages {
         return packetId++;
     }
 
+    // Send to everyone seeing the entity (including the entity itself)
+    public static <MSG> void sendToAllTracking(MSG message, net.minecraft.world.entity.Entity entity) {
+        INSTANCE.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> entity), message);
+    }
+
     // --- SENDER METHODS ---
     public static <MSG> void sendToServer(MSG message) {
         INSTANCE.sendToServer(message);
@@ -22,6 +27,8 @@ public class Messages {
 
     public static <MSG> void sendToPlayer(MSG message, ServerPlayer player) {
         INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), message);
+
+
     }
 
     public static void register() {
@@ -91,6 +98,12 @@ public class Messages {
                 .decoder(PacketScreenShake::new)
                 .encoder(PacketScreenShake::toBytes)
                 .consumerMainThread(PacketScreenShake::handle)
+                .add();
+        // 10. PLAY EFFECT (Server -> Clients)
+        net.messageBuilder(PacketPlayEffect.class, id(), NetworkDirection.PLAY_TO_CLIENT)
+                .decoder(PacketPlayEffect::new)
+                .encoder(PacketPlayEffect::toBytes)
+                .consumerMainThread(PacketPlayEffect::handle)
                 .add();
     }
 

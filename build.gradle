@@ -16,8 +16,8 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 minecraft {
-    mappings channel: mapping_channel, version: mapping_version
-
+    mappings channel: 'official', version: '1.20.1'
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
     copyIdeResources = true
 
     runs {
@@ -35,6 +35,9 @@ minecraft {
 
         client {
             property 'forge.enabledGameTestNamespaces', mod_id
+            property 'mixin.env.disableRefMap', 'true'
+            property 'mixin.env.remapRefMap', 'true'
+
         }
 
         server {
@@ -69,11 +72,14 @@ repositories {
 }
 
 dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-
+    minecraft "net.minecraftforge:forge:1.20.1-47.2.20"
     // STABLE EPIC FIGHT (Version 20.5.15) - The one that works!
     implementation fg.deobf("curse.maven:epic-fight-405076:4796372")
-}
+    //lodestone mod, bacically unity for particles
+    implementation fg.deobf("curse.maven:lodestone-616457:6213794")
+    // Curios API (Version 5.9.1 - Standard for 1.20.1)
+    implementation fg.deobf("curse.maven:curios-309927:6418456")
+    }
 
 tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [
