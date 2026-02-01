@@ -3,6 +3,15 @@ package com.TaylorBros.ManhwaMod;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.registries.RegistryManager;
+import net.minecraftforge.registries.IForgeRegistry;
+
+// Epic Fight Imports
+import yesman.epicfight.world.capabilities.EpicFightCapabilities;
+import yesman.epicfight.world.capabilities.entitypatch.player.PlayerPatch;
+import yesman.epicfight.skill.Skill;
+
 import java.util.List;
 import java.util.ArrayList;
 
@@ -19,7 +28,7 @@ public class SystemData {
     public static final String HP = "manhwamod.health_stat";
     public static final String DEF = "manhwamod.defense";
     public static final String SPD = "manhwamod.speed";
-    public static final String MANA = "manhwamod.mana"; // Intelligence
+    public static final String MANA = "manhwamod.mana";
 
     public static final String CURRENT_MANA = "manhwamod.current_mana";
     public static final String RECIPE_PREFIX = "manhwamod.skill_recipe_";
@@ -27,7 +36,6 @@ public class SystemData {
     public static final String LAST_USE_PREFIX = "manhwamod.last_use_";
     public static final String COOLDOWN_PREFIX = "manhwamod.cooldown_";
 
-    // --- ACCESSORS ---
     public static int getStrength(Player player) { return player.getPersistentData().getInt(STR); }
     public static int getHealthStat(Player player) { int val = player.getPersistentData().getInt(HP); return val == 0 ? 20 : val; }
     public static int getSpeed(Player player) { return player.getPersistentData().getInt(SPD); }
@@ -43,12 +51,10 @@ public class SystemData {
     public static void savePoints(Player player, int val) { player.getPersistentData().putInt(POINTS, val); sync(player); }
     public static void saveCurrentMana(Player player, int val) { player.getPersistentData().putInt(CURRENT_MANA, val); sync(player); }
 
-    // --- SYNCING ---
     public static void sync(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
             CompoundTag nbt = player.getPersistentData();
             CompoundTag syncData = new CompoundTag();
-
             syncData.putString(BANK, nbt.getString(BANK));
             syncData.putInt(STR, nbt.getInt(STR));
             syncData.putInt(HP, nbt.getInt(HP));
@@ -62,41 +68,23 @@ public class SystemData {
             syncData.putInt(CURRENT_MANA, nbt.getInt(CURRENT_MANA));
             syncData.putInt(XP, nbt.getInt(XP));
             syncData.putString("manhwamod.affinity", nbt.getString("manhwamod.affinity"));
-
-            for (int i = 0; i < 5; i++) {
-                String key = SLOT_PREFIX + i;
-                syncData.putInt(key, nbt.getInt(key));
-            }
-
-            // Sync Recipes AND COSTS
+            for (int i = 0; i < 5; i++) syncData.putInt(SLOT_PREFIX + i, nbt.getInt(SLOT_PREFIX + i));
             List<Integer> unlocked = getUnlockedSkills(player);
             for (int id : unlocked) {
-                String rKey = RECIPE_PREFIX + id;
-                syncData.putString(rKey, nbt.getString(rKey));
-
-                String cKey = COST_PREFIX + id;
-                syncData.putInt(cKey, nbt.getInt(cKey));
+                syncData.putString(RECIPE_PREFIX + id, nbt.getString(RECIPE_PREFIX + id));
+                syncData.putInt(COST_PREFIX + id, nbt.getInt(COST_PREFIX + id));
             }
-
-            // Sync Cooldowns
             for (int i = 0; i < 5; i++) {
-                String lastUseKey = LAST_USE_PREFIX + i;
-                String cooldownKey = COOLDOWN_PREFIX + i;
-                syncData.putLong(lastUseKey, nbt.getLong(lastUseKey));
-                syncData.putInt(cooldownKey, nbt.getInt(cooldownKey));
+                syncData.putLong(LAST_USE_PREFIX + i, nbt.getLong(LAST_USE_PREFIX + i));
+                syncData.putInt(COOLDOWN_PREFIX + i, nbt.getInt(COOLDOWN_PREFIX + i));
             }
-
             Messages.sendToPlayer(new PacketSyncSystemData(syncData), serverPlayer);
         }
     }
 
-    // --- THE FIX IS HERE ---
     public static String getSkillRecipe(Player player, int slot) {
         int skillId = player.getPersistentData().getInt(SLOT_PREFIX + slot);
         if (skillId <= 0) return "";
-
-        // FIXED: Return the FULL string (e.g. "BALL:FIRE:EXPLODE|Infernal Star")
-        // Do NOT split it here. The HUD needs the name part, and SkillEngine cleans it itself.
         return player.getPersistentData().getString(RECIPE_PREFIX + skillId);
     }
 
@@ -106,21 +94,45 @@ public class SystemData {
         String bank = player.getPersistentData().getString(BANK);
         if (bank.isEmpty()) return list;
         String[] parts = bank.replace("[", "").split("]");
-        for (String s : parts) {
-            if (!s.isEmpty()) try { list.add(Integer.parseInt(s.trim())); } catch (Exception ignored) {}
-        }
+        for (String s : parts) if (!s.isEmpty()) try { list.add(Integer.parseInt(s.trim())); } catch (Exception ignored) {}
         return list;
     }
 
+    // --- UPDATED UNLOCK METHOD ---
     public static void unlockSkill(Player player, int id, String recipe, int cost) {
-        List<Integer> unlocked = getUnlockedSkills(player);
-        if (!unlocked.contains(id)) {
-            String currentBank = player.getPersistentData().getString(BANK);
-            player.getPersistentData().putString(BANK, currentBank + "[" + id + "]");
+        // 1. Manhwa Mod Unlock
+        if (!getUnlockedSkills(player).contains(id)) {
+            player.getPersistentData().putString(BANK, player.getPersistentData().getString(BANK) + "[" + id + "]");
         }
         player.getPersistentData().putString(RECIPE_PREFIX + id, recipe);
         player.getPersistentData().putInt(COST_PREFIX + id, cost);
         sync(player);
+
+        // 2. Epic Fight Auto-Unlock
+        if (player instanceof ServerPlayer serverPlayer) {
+            try {
+                // Recipe: "SLASH:FIRE:NONE" -> "skill_slash"
+                String shapeName = recipe.split(":")[0].toLowerCase();
+                String skillName = "skill_" + shapeName;
+
+                // FIX: Use RegistryManager to find the skill by name
+                ResourceLocation registryName = new ResourceLocation("epicfight", "skill");
+                IForgeRegistry<Skill> skillRegistry = RegistryManager.ACTIVE.getRegistry(registryName);
+
+                if (skillRegistry != null) {
+                    Skill efSkill = skillRegistry.getValue(new ResourceLocation("manhwamod", skillName));
+
+                    if (efSkill != null) {
+                        PlayerPatch<?> patch = EpicFightCapabilities.getEntityPatch(player, PlayerPatch.class);
+                        if (patch != null) {
+                            patch.getSkillCapability().addLearnedSkill(efSkill);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // Silently fail if EF isn't loaded or skill doesn't exist
+            }
+        }
     }
 
     public static void saveAwakening(Player player, boolean val) { player.getPersistentData().putBoolean(AWAKENED, val); sync(player); }
@@ -137,10 +149,6 @@ public class SystemData {
 
     public static Affinity getAffinity(Player player) {
         String name = player.getPersistentData().getString("manhwamod.affinity");
-        try {
-            return name.isEmpty() ? Affinity.NONE : Affinity.valueOf(name);
-        } catch (IllegalArgumentException e) {
-            return Affinity.NONE;
-        }
+        try { return name.isEmpty() ? Affinity.NONE : Affinity.valueOf(name); } catch (Exception e) { return Affinity.NONE; }
     }
 }

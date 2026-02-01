@@ -132,6 +132,29 @@ public class SystemCommands {
                                     return 1;
                                 })
                         )
+                        // 7. DEBUG SKILLS (New)
+                        .then(Commands.literal("debug_skills")
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+
+                                    // Get the registry safely
+                                    net.minecraftforge.registries.IForgeRegistry<yesman.epicfight.skill.Skill> reg =
+                                            net.minecraftforge.registries.RegistryManager.ACTIVE.getRegistry(new net.minecraft.resources.ResourceLocation("epicfight", "skill"));
+
+                                    if (reg != null) {
+                                        player.sendSystemMessage(Component.literal("--- REGISTERED MANHWA SKILLS ---"));
+                                        for (yesman.epicfight.skill.Skill s : reg.getValues()) {
+                                            if (s.getRegistryName().getNamespace().equals("manhwamod")) {
+                                                player.sendSystemMessage(Component.literal("- " + s.getRegistryName().toString()));
+                                            }
+                                        }
+                                        player.sendSystemMessage(Component.literal("--------------------------------"));
+                                    } else {
+                                        player.sendSystemMessage(Component.literal("ERROR: Could not find EpicFight registry!"));
+                                    }
+                                    return 1;
+                                })
+                        )
                 )
         );
     }
