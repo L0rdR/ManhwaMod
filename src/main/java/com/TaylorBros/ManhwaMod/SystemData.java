@@ -81,6 +81,16 @@ public class SystemData {
             Messages.sendToPlayer(new PacketSyncSystemData(syncData), serverPlayer);
         }
     }
+    public static final String MEMORIZED_TECHNIQUE = "manhwamod.memorized_technique";
+
+    public static void setMemorizedTechnique(Player player, String technique) {
+        player.getPersistentData().putString(MEMORIZED_TECHNIQUE, technique);
+        sync(player);
+    }
+
+    public static String getMemorizedTechnique(Player player) {
+        return player.getPersistentData().getString(MEMORIZED_TECHNIQUE);
+    }
 
     public static String getSkillRecipe(Player player, int slot) {
         int skillId = player.getPersistentData().getInt(SLOT_PREFIX + slot);

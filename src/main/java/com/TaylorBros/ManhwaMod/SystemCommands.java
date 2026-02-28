@@ -85,7 +85,8 @@ public class SystemCommands {
                         // 4. LEARN SKILL (FIXED: COST FIRST, RECIPE LAST)
                         .then(Commands.literal("learn_skill")
                                 .then(Commands.argument("cost", IntegerArgumentType.integer(1)) // Cost First
-                                        .then(Commands.argument("recipe", StringArgumentType.greedyString()) // Recipe Last (Allows symbols)
+                                        .then(Commands.argument("recipe", StringArgumentType.greedyString())
+                                                .suggests(ManhwaCommandSuggestions.SKILL_RECIPE)
                                                 .executes(context -> {
                                                     ServerPlayer player = context.getSource().getPlayerOrException();
                                                     String recipe = StringArgumentType.getString(context, "recipe");

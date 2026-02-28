@@ -105,6 +105,13 @@ public class Messages {
                 .encoder(PacketPlayEffect::toBytes)
                 .consumerMainThread(PacketPlayEffect::handle)
                 .add();
+
+        // 11. STRIKE IMPACT (Server -> Clients)
+        net.messageBuilder(PacketPlayStrikeImpact.class, id(), NetworkDirection.PLAY_TO_CLIENT)
+                .decoder(PacketPlayStrikeImpact::new)
+                .encoder(PacketPlayStrikeImpact::toBytes)
+                .consumerMainThread(PacketPlayStrikeImpact::handle)
+                .add();
     }
 
 }

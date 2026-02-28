@@ -29,7 +29,6 @@ public class PacketPlayEffect {
     public boolean handle(Supplier<NetworkEvent.Context> supplier) {
         NetworkEvent.Context context = supplier.get();
         context.enqueueWork(() -> {
-            System.out.println("CLIENT RECEIVED EFFECT PACKET: " + recipe);
             // CLIENT SIDE: Find the player and play the effect
             if (Minecraft.getInstance().level != null) {
                 Entity target = Minecraft.getInstance().level.getEntity(entityId);

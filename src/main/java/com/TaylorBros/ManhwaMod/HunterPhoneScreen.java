@@ -35,12 +35,43 @@ public class HunterPhoneScreen extends Screen {
     private float globalScale = 1.0f;
     private int scaledWidth, scaledHeight;
 
-    private enum SortMode { ID("ID"), RANK_DESC("Best"), RANK_ASC("Worst"); final String label; SortMode(String l) { this.label = l; } }
-    private SortMode currentSort = SortMode.RANK_DESC;
+    private SortMode currentSort = SortMode.ID;
+
+
+    private enum SortMode {
+        ID("ID"),
+        RANK_DESC("Rank ↓"),
+        RANK_ASC("Rank ↑"),
+        MARTIAL("Martial");
+
+        public final String label;
+
+        SortMode(String label) {
+            this.label = label;
+        }
+
+        public SortMode next() {
+            int next = (this.ordinal() + 1) % values().length;
+            return values()[next];
+        }
+    }
+
+
+
+    private String sortLabel(SortMode mode) {
+        return switch (mode) {
+            case ID -> "ID";
+            case RANK_DESC -> "Best";
+            case RANK_ASC -> "Worst";
+            case MARTIAL -> "Martial";
+        };
+    }
 
     private final List<Button> statusButtons = new ArrayList<>();
 
-    public HunterPhoneScreen() { super(Component.literal("Hunter Phone")); }
+    public HunterPhoneScreen() {
+        super(Component.literal("Hunter Phone"));
+    }
 
     @Override
     protected void init() {
@@ -48,12 +79,12 @@ public class HunterPhoneScreen extends Screen {
         this.statusButtons.clear();
 
         // --- 1. CALCULATE SCALE ---
-        float maxScaleH = (float)(this.height - 20) / PHONE_H;
+        float maxScaleH = (float) (this.height - 20) / PHONE_H;
         this.globalScale = Math.min(1.0f, maxScaleH);
 
         // --- 2. VIRTUAL COORDINATES ---
-        this.scaledWidth = (int)(this.width / globalScale);
-        this.scaledHeight = (int)(this.height / globalScale);
+        this.scaledWidth = (int) (this.width / globalScale);
+        this.scaledHeight = (int) (this.height / globalScale);
 
         int cx = scaledWidth / 2;
         int cy = scaledHeight / 2;
@@ -80,7 +111,9 @@ public class HunterPhoneScreen extends Screen {
             int points = player.getPersistentData().getInt(SystemData.POINTS);
             if (points > 0) {
                 this.addRenderableWidget(Button.builder(Component.literal("x" + multiplier), b -> {
-                    if (multiplier == 1) multiplier = 10; else if (multiplier == 10) multiplier = 100; else multiplier = 1;
+                    if (multiplier == 1) multiplier = 10;
+                    else if (multiplier == 10) multiplier = 100;
+                    else multiplier = 1;
                     b.setMessage(Component.literal("x" + multiplier));
                 }).bounds(cx + 45, cy - 110, 30, 16).build());
 
@@ -90,9 +123,9 @@ public class HunterPhoneScreen extends Screen {
 
                 addButtonToGroup(createStatBtn(buttonX, startY, "strength"));
                 addButtonToGroup(createStatBtn(buttonX, startY + gap, "agility"));
-                addButtonToGroup(createStatBtn(buttonX, startY + gap*2, "vitality"));
-                addButtonToGroup(createStatBtn(buttonX, startY + gap*3, "intelligence"));
-                addButtonToGroup(createStatBtn(buttonX, startY + gap*4, "defense"));
+                addButtonToGroup(createStatBtn(buttonX, startY + gap * 2, "vitality"));
+                addButtonToGroup(createStatBtn(buttonX, startY + gap * 3, "intelligence"));
+                addButtonToGroup(createStatBtn(buttonX, startY + gap * 4, "defense"));
             }
         }
 
@@ -100,7 +133,8 @@ public class HunterPhoneScreen extends Screen {
         if (currentApp == 2) {
             this.addRenderableWidget(Button.builder(Component.literal("Sort: " + currentSort.label), b -> {
                 switch (currentSort) {
-                    case RANK_DESC -> currentSort = SortMode.RANK_ASC;
+                    case RANK_DESC -> currentSort = SortMode.MARTIAL;
+                    case MARTIAL -> currentSort = SortMode.RANK_ASC;
                     case RANK_ASC -> currentSort = SortMode.ID;
                     case ID -> currentSort = SortMode.RANK_DESC;
                 }
@@ -111,7 +145,7 @@ public class HunterPhoneScreen extends Screen {
             // --- HIDE LOGIC START ---
             // Check if player has a BLANK Skill Orb
             boolean hasOrb = false;
-            for(int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
                 ItemStack s = player.getInventory().getItem(i);
                 // Check if item is Skill Orb AND has NO data (meaning it is blank)
                 if (s.getItem() == ManhwaMod.SKILL_ORB.get() && !s.hasTag()) {
@@ -137,7 +171,8 @@ public class HunterPhoneScreen extends Screen {
 
         // STORE APP
         if (currentApp == 5) {
-            int btnX = cx - 60; int btnY = cy - 30;
+            int btnX = cx - 60;
+            int btnY = cy - 30;
             this.addRenderableWidget(Button.builder(Component.literal("Mystery Skill (10 Pts)"), b -> Messages.sendToServer(new PacketBuyItem(0))).bounds(btnX, btnY, 120, 20).build());
             this.addRenderableWidget(Button.builder(Component.literal("Mana Elixir (5 Pts)"), b -> Messages.sendToServer(new PacketBuyItem(1))).bounds(btnX, btnY + 25, 120, 20).build());
             this.addRenderableWidget(Button.builder(Component.literal("Gamble Box (1 Pt)"), b -> Messages.sendToServer(new PacketBuyItem(2))).bounds(btnX, btnY + 50, 120, 20).build());
@@ -145,10 +180,23 @@ public class HunterPhoneScreen extends Screen {
 
         // HOME BUTTON
         this.addRenderableWidget(Button.builder(Component.literal(""), button -> {
-            if (currentApp == 0) this.onClose(); else switchApp(0);
+            if (currentApp == 0) this.onClose();
+            else switchApp(0);
         }).bounds(cx - 25, cy + 135, 50, 15).build());
-    }
 
+        this.addRenderableWidget(Button.builder(Component.literal("Sort: " + sortLabel(currentSort)), b ->
+        {
+            switch (currentSort) {
+                case ID -> currentSort = SortMode.RANK_DESC;
+                case RANK_DESC -> currentSort = SortMode.MARTIAL;
+                case MARTIAL -> currentSort = SortMode.RANK_ASC;
+                case RANK_ASC -> currentSort = SortMode.ID;
+            }
+            b.setMessage(Component.literal("Sort: " + sortLabel(currentSort)));
+            this.scrollOffset = 0;
+        }).bounds(this.width / 2 + 35, this.height / 2 - 75, 70, 16).build());
+
+    }
     // --- MOUSE INPUT TRANSFORMATION ---
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -380,15 +428,54 @@ public class HunterPhoneScreen extends Screen {
     private Button createStatBtn(int x, int y, String stat) { return Button.builder(Component.literal("+"), b -> Messages.sendToServer(new PacketIncreaseStat(stat, multiplier))).bounds(x, y, 14, 14).build(); }
     private void switchApp(int appId) { this.currentApp = appId; this.scrollOffset = 0; this.selectedSkillId = -1; this.init(); }
     private void addButtonToGroup(Button b) { this.addRenderableWidget(b); this.statusButtons.add(b); }
+
+    private static boolean isMartialRecipe(String recipe) {
+        if (recipe == null || recipe.isEmpty()) return false;
+        String clean = recipe.contains("|") ? recipe.split("\\|")[0] : recipe;
+        String[] parts = clean.split(":");
+        if (parts.length < 1) return false;
+        String shapeName = parts[0].trim().toUpperCase().replace(" ", "_");
+        try {
+            SkillTags.Shape shape = SkillTags.Shape.valueOf(shapeName);
+            return shape == SkillTags.Shape.SLASH
+                    || shape == SkillTags.Shape.VERT_SLASH
+                    || shape == SkillTags.Shape.HORIZ_SLASH
+                    || shape == SkillTags.Shape.DASH
+                    || shape == SkillTags.Shape.BLINK_STRIKE
+                    || shape == SkillTags.Shape.SLASH_BARRAGE
+                    || shape == SkillTags.Shape.PUNCH
+                    || shape == SkillTags.Shape.BARRAGE_PUNCH;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private static int safeSkillIdCompare(int a, int b) {
+        return Integer.compare(a, b);
+    }
+
     private List<Integer> getSortedSkills(Player p) {
         List<Integer> skills = new ArrayList<>(SystemData.getUnlockedSkills(p));
         if (currentSort == SortMode.ID) return skills;
         skills.sort((id1, id2) -> {
             String r1 = p.getPersistentData().getString(SystemData.RECIPE_PREFIX + id1);
             String r2 = p.getPersistentData().getString(SystemData.RECIPE_PREFIX + id2);
+            boolean m1 = isMartialRecipe(r1);
+            boolean m2 = isMartialRecipe(r2);
             SkillRanker.Rank rank1 = SkillRanker.getRank(r1);
             SkillRanker.Rank rank2 = SkillRanker.getRank(r2);
-            return (currentSort == SortMode.RANK_DESC) ? Integer.compare(rank2.ordinal(), rank1.ordinal()) : Integer.compare(rank1.ordinal(), rank2.ordinal());
+
+            if (currentSort == SortMode.MARTIAL) {
+                // Martial first, then best rank, then stable by ID
+                if (m1 != m2) return m1 ? -1 : 1;
+                int byRank = Integer.compare(rank2.ordinal(), rank1.ordinal());
+                return (byRank != 0) ? byRank : safeSkillIdCompare(id1, id2);
+            }
+
+            int byRank = (currentSort == SortMode.RANK_DESC)
+                    ? Integer.compare(rank2.ordinal(), rank1.ordinal())
+                    : Integer.compare(rank1.ordinal(), rank2.ordinal());
+            return (byRank != 0) ? byRank : safeSkillIdCompare(id1, id2);
         });
         return skills;
     }

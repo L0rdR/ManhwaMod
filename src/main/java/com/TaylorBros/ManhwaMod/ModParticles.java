@@ -14,22 +14,27 @@ public class ModParticles {
     // --- BASE ASSETS ---
     public static final RegistryObject<LodestoneWorldParticleType> SOFT_GLOW =
             PARTICLES.register("soft_glow", LodestoneWorldParticleType::new);
+
     public static final RegistryObject<LodestoneWorldParticleType> SHARP_SPARK =
             PARTICLES.register("sharp_spark", LodestoneWorldParticleType::new);
+
     public static final RegistryObject<LodestoneWorldParticleType> SMOKE_CLOUD =
             PARTICLES.register("smoke_cloud", LodestoneWorldParticleType::new);
+
     public static final RegistryObject<LodestoneWorldParticleType> SHOCKWAVE_RING =
             PARTICLES.register("shockwave_ring", LodestoneWorldParticleType::new);
-    public static final RegistryObject<LodestoneWorldParticleType> CRESCENT_SLASH =
-            PARTICLES.register("crescent_slash", LodestoneWorldParticleType::new);
 
-    // --- NEW ASSETS (Required for the new skills) ---
-    public static final RegistryObject<LodestoneWorldParticleType> LIGHTNING_BOLT =
-            PARTICLES.register("lightning_bolt", LodestoneWorldParticleType::new);
-    public static final RegistryObject<LodestoneWorldParticleType> MAGIC_CIRCLE =
-            PARTICLES.register("magic_circle", LodestoneWorldParticleType::new);
-    public static final RegistryObject<LodestoneWorldParticleType> STAR_FLARE =
-            PARTICLES.register("star_flare", LodestoneWorldParticleType::new); // If you haven't made this png yet, it will just show purple/black square, which is fine for testing.
+    // --- STRIKE SPRITES (Epic Fight-style) ---
+    public static final RegistryObject<LodestoneWorldParticleType> EF_CUT1 = PARTICLES.register("ef_cut1", LodestoneWorldParticleType::new);
+    public static final RegistryObject<LodestoneWorldParticleType> EF_CUT2 = PARTICLES.register("ef_cut2", LodestoneWorldParticleType::new);
+    public static final RegistryObject<LodestoneWorldParticleType> EF_CUT3 = PARTICLES.register("ef_cut3", LodestoneWorldParticleType::new);
+    public static final RegistryObject<LodestoneWorldParticleType> EF_CUT4 = PARTICLES.register("ef_cut4", LodestoneWorldParticleType::new);
+
+    public static final RegistryObject<LodestoneWorldParticleType> EF_BR1 = PARTICLES.register("ef_br1", LodestoneWorldParticleType::new);
+    public static final RegistryObject<LodestoneWorldParticleType> EF_BR2 = PARTICLES.register("ef_br2", LodestoneWorldParticleType::new);
+    public static final RegistryObject<LodestoneWorldParticleType> EF_BR3 = PARTICLES.register("ef_br3", LodestoneWorldParticleType::new);
+    public static final RegistryObject<LodestoneWorldParticleType> EF_BR4 = PARTICLES.register("ef_br4", LodestoneWorldParticleType::new);
+    public static final RegistryObject<LodestoneWorldParticleType> EF_BR5 = PARTICLES.register("ef_br5", LodestoneWorldParticleType::new);
 
     public static void register(IEventBus eventBus) {
         PARTICLES.register(eventBus);

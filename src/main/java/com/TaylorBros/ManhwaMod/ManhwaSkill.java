@@ -1,4 +1,4 @@
-package com.TaylorBros.ManhwaMod.skills;
+package com.TaylorBros.ManhwaMod;
 
 import com.TaylorBros.ManhwaMod.SkillEngine;
 import com.TaylorBros.ManhwaMod.SkillTags;
